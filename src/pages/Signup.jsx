@@ -89,7 +89,7 @@ const SignUpPage = () => {
                 htmlFor="fullName"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Full Name <span className="text-red-500">*</span>
+                Full Name
               </label>
               <input
                 type="text"
@@ -107,7 +107,7 @@ const SignUpPage = () => {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Email Address <span className="text-red-500">*</span>
+                Email Address
               </label>
               <input
                 type="email"
@@ -128,7 +128,7 @@ const SignUpPage = () => {
                 htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Password <span className="text-red-500">*</span>
+                Password
               </label>
               <input
                 type="password"
@@ -149,7 +149,7 @@ const SignUpPage = () => {
                 htmlFor="confirmPassword"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Confirm Password <span className="text-red-500">*</span>
+                Confirm Password
               </label>
               <input
                 type="password"
