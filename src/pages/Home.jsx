@@ -258,43 +258,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Why PlayLink */}
-      <div className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Why PlayLink?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">No Double Bookings</h3>
-              <p className="text-gray-400">
-                Real-time availability ensures your court is ready
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Split Payments</h3>
-              <p className="text-gray-400">Share costs easily with your team</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Fair Cancellation</h3>
-              <p className="text-gray-400">
-                Flexible policies for unexpected changes
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
