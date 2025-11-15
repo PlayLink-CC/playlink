@@ -230,8 +230,10 @@ const Home = () => {
                   <span className="text-sm">{venue.location}</span>
                 </div>
                 <div className="flex items-center text-green-600 font-bold mb-4">
-                  <DollarSign size={20} />
-                  <span className="text-lg">{venue.pricePerHour}/hour</span>
+                  <p>LKR</p>
+                  <span className="text-lg ml-1">
+                    {venue.pricePerHour}/hour
+                  </span>
                 </div>
                 <div className="mb-4">
                   <p className="text-sm font-semibold text-gray-700 mb-2">
