@@ -3,19 +3,60 @@ import React, { useState } from "react";
 const SignUpPage = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = () => {
+    setError("");
+
+    // Check if all fields are filled
+    if (!fullName.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (!email.trim()) {
+      setError("Please enter your email address.");
+      return;
+    }
+
+    if (!password.trim()) {
+      setError("Please enter a password.");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (!confirmPassword.trim()) {
+      setError("Please confirm your password.");
+      return;
+    }
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      setError("Passwords do not match. Please try again.");
+      return;
+    }
+
+    // Check if terms and conditions are agreed to
+    if (!agreeTerms) {
+      setError(
+        "You must agree to the Terms of Service and Privacy Policy to continue."
+      );
+      return;
+    }
+
     console.log("Sign up attempted with:", {
       fullName,
       email,
-      address,
-      city,
-      dateOfBirth,
       agreeTerms,
+      password,
+      confirmPassword,
     });
     // Add your sign-up logic here
   };
@@ -35,13 +76,20 @@ const SignUpPage = () => {
           </div>
 
           <div>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-700">{error}</p>
+              </div>
+            )}
+
             {/* Full Name */}
             <div className="mb-4">
               <label
                 htmlFor="fullName"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Full Name <span className="text-red-500">*</span>
+                Full Name
               </label>
               <input
                 type="text"
@@ -59,7 +107,7 @@ const SignUpPage = () => {
                 htmlFor="email"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Email Address <span className="text-red-500">*</span>
+                Email Address
               </label>
               <input
                 type="email"
@@ -74,57 +122,46 @@ const SignUpPage = () => {
               </p>
             </div>
 
-            {/* Address */}
+            {/* Password */}
             <div className="mb-4">
               <label
-                htmlFor="address"
+                htmlFor="password"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Address <span className="text-red-500">*</span>
+                Password
               </label>
-              <textarea
-                id="address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Enter your full address"
-                rows="3"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition resize-none"
+              <input
+                type="password"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
               />
+              <p className="text-xs text-gray-500 mt-1">
+                Your password should contain a minimum of 8 characters.
+              </p>
             </div>
 
-            {/* City and Date of Birth */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <label
-                  htmlFor="city"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  City <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="city"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="Enter your city"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="dateOfBirth"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Date of Birth <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  id="dateOfBirth"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
-                />
-              </div>
+            {/* Confirm Password */}
+            <div className="mb-4">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Your password should contain a minimum of 8 characters.
+              </p>
             </div>
 
             {/* Terms and Conditions */}
