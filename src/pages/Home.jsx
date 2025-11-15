@@ -263,7 +263,6 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-green-500 rounded-lg"></div>
                 <span className="text-xl font-bold">PlayLink</span>
               </div>
               <p className="text-gray-400 text-sm">
@@ -324,7 +323,7 @@ const Home = () => {
               <h4 className="font-bold mb-4">Contact</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>support@playlink.com</li>
-                <li>+1 (555) 123-4567</li>
+                <li>+94 (555) 1234</li>
               </ul>
             </div>
           </div>
