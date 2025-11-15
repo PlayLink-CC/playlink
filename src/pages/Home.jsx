@@ -3,8 +3,6 @@ import { Calendar, MapPin, DollarSign, Check, Menu, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 
 const Home = () => {
-  // const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const venues = [
     {
       id: 1,
