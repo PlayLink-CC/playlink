@@ -146,7 +146,7 @@ const Home = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-white to-gray-50 py-16 px-4">
+      <div className="bg-linear-to-b from-white to-gray-50 py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Book Sports Courts Instantly
