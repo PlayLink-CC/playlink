@@ -1,6 +1,7 @@
 import React from "react";
 import { Calendar, MapPin, DollarSign, Check, Menu, X } from "lucide-react";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const Home = () => {
   const venues = [
@@ -146,7 +147,7 @@ const Home = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-white to-gray-50 py-16 px-4">
+      <div className="bg-linear-to-b from-white to-gray-50 py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
             Book Sports Courts Instantly
@@ -230,8 +231,10 @@ const Home = () => {
                   <span className="text-sm">{venue.location}</span>
                 </div>
                 <div className="flex items-center text-green-600 font-bold mb-4">
-                  <DollarSign size={20} />
-                  <span className="text-lg">{venue.pricePerHour}/hour</span>
+                  <p>LKR</p>
+                  <span className="text-lg ml-1">
+                    {venue.pricePerHour}/hour
+                  </span>
                 </div>
                 <div className="mb-4">
                   <p className="text-sm font-semibold text-gray-700 mb-2">
@@ -249,7 +252,7 @@ const Home = () => {
                     ))}
                   </div>
                 </div>
-                <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition">
+                <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer">
                   Book Now
                 </button>
               </div>
@@ -258,118 +261,8 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Why PlayLink */}
-      <div className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">
-            Why PlayLink?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">No Double Bookings</h3>
-              <p className="text-gray-400">
-                Real-time availability ensures your court is ready
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <DollarSign size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Split Payments</h3>
-              <p className="text-gray-400">Share costs easily with your team</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Fair Cancellation</h3>
-              <p className="text-gray-400">
-                Flexible policies for unexpected changes
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 border-t border-gray-800">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-green-500 rounded-lg"></div>
-                <span className="text-xl font-bold">PlayLink</span>
-              </div>
-              <p className="text-gray-400 text-sm">
-                Book sports courts instantly with confidence
-              </p>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    How It Works
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    Contact
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    Support
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    Terms & Conditions
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    Cancellation Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-green-400">
-                    Cookie Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-4">Contact</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>support@playlink.com</li>
-                <li>+1 (555) 123-4567</li>
-              </ul>
-            </div>
-          </div>
-          <div className="text-center text-sm text-gray-400 pt-8 border-t border-gray-800">
-            Copyright © 2025 PlayLink. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
