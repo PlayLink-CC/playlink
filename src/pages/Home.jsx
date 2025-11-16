@@ -1,7 +1,4 @@
-import React from "react";
-import { Calendar, MapPin, DollarSign, Check, Menu, X } from "lucide-react";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import { MapPin, Check, X } from "lucide-react";
 
 const Home = () => {
   const venues = [
@@ -143,9 +140,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <Navbar />
-
       {/* Hero Section */}
       <div className="bg-linear-to-b from-white to-gray-50 py-16 px-4">
         <div className="max-w-7xl mx-auto text-center">
@@ -260,9 +254,6 @@ const Home = () => {
           ))}
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer />
     </div>
   );
 };
