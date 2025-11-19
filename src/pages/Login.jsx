@@ -1,12 +1,47 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = () => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async () => {
     console.log("Sign in attempted with:", { email, password });
-    // Add your sign-in logic here
+
+    if (!email || !password) {
+      alert("Please enter email and password");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:3000/api/users/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Login failed");
+        return;
+      }
+
+      console.log("Login successful:", data);
+
+      navigate("/");
+
+      alert("Logged in!");
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    }
   };
 
   return (
