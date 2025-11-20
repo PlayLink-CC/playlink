@@ -2,6 +2,9 @@ import { MapPin, Check, Activity } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+import SearchForm from "../components/SearchForm.jsx";
+import SportsFilter from "../components/SportsFilter.jsx";
+
 const Home = () => {
   const [venues, setVenues] = useState([]);
 
@@ -21,13 +24,6 @@ const Home = () => {
     fetchVenues();
   }, []);
 
-  const sports = [
-    { name: "Tennis", icon: "🎾", color: "bg-green-100" },
-    { name: "Basketball", icon: "🏀", color: "bg-orange-100" },
-    { name: "Football", icon: "⚽", color: "bg-blue-100" },
-    { name: "Badminton", icon: "🏸", color: "bg-purple-100" },
-  ];
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -40,54 +36,11 @@ const Home = () => {
             Find and book your perfect court in seconds
           </p>
 
-          {/* Search Form */}
-          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-4 md:p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <input
-                type="text"
-                placeholder="Search Sport"
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <input
-                type="text"
-                placeholder="Search Location"
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <input
-                type="date"
-                placeholder="mm/dd/yyyy"
-                className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              />
-              <button className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition">
-                Search Courts
-              </button>
-            </div>
-          </div>
+          <SearchForm />
         </div>
       </div>
 
-      {/* Popular Sports */}
-      <div className="max-w-7xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          Popular Sports
-        </h2>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {sports.map((sport, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-2xl shadow-md hover:shadow-xl transition p-8 text-center cursor-pointer"
-            >
-              <div
-                className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 ${sport.color}`}
-              >
-                {sport.icon}
-              </div>
-              <h3 className="font-semibold text-gray-900">{sport.name}</h3>
-            </div>
-          ))}
-        </div>
-      </div>
+      <SportsFilter />
 
       {/* Trending Venues */}
       <div className="max-w-7xl mx-auto px-4 py-16">
