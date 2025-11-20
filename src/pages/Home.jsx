@@ -1,4 +1,4 @@
-import { MapPin, Check, X } from "lucide-react";
+import { MapPin, Check, X, Activity } from "lucide-react";
 
 const Home = () => {
   const venues = [
@@ -6,6 +6,7 @@ const Home = () => {
       id: 1,
       name: "Urban Sports Arena",
       location: "Downtown, City Center",
+      courtType: "Basketball",
       pricePerHour: 25,
       image:
         "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&q=80",
@@ -15,6 +16,7 @@ const Home = () => {
       id: 2,
       name: "Green Valley Courts",
       location: "Westside, Green Valley",
+      courtType: "Basketball",
       pricePerHour: 30,
       image:
         "https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?w=800&q=80",
@@ -24,6 +26,7 @@ const Home = () => {
       id: 3,
       name: "Elite Sports Complex",
       location: "Eastside, Business District",
+      courtType: "Basketball",
       pricePerHour: 35,
       image:
         "https://images.unsplash.com/photo-1519766304817-4f37bda74a26?w=800&q=80",
@@ -33,6 +36,7 @@ const Home = () => {
       id: 4,
       name: "Community Sports Hub",
       location: "Northside, Residential Area",
+      courtType: "Basketball",
       pricePerHour: 20,
       image:
         "https://images.unsplash.com/photo-1519861531473-9200262188bf?w=800&q=80",
@@ -137,6 +141,10 @@ const Home = () => {
                 <div className="flex items-center text-gray-600 mb-3">
                   <MapPin size={16} className="mr-2" />
                   <span className="text-sm">{venue.location}</span>
+                </div>
+                <div className="flex items-center text-gray-600 mb-3">
+                  <Activity size={16} className="mr-2" />
+                  <span className="text-sm">{venue.courtType}</span>
                 </div>
                 <div className="flex items-center text-green-600 font-bold mb-4">
                   <p>LKR</p>
