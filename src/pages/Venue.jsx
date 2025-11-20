@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { MapPin, Check, Activity } from "lucide-react";
 import axios from "axios";
 
@@ -6,6 +7,7 @@ import SearchForm from "../components/SearchForm";
 import SportsFilter from "../components/SportsFilter";
 
 const Venue = () => {
+  const location = useLocation();
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchPerformed, setSearchPerformed] = useState(false);
@@ -30,13 +32,24 @@ const Venue = () => {
   };
 
   useEffect(() => {
-    fetchVenues();
-  }, []);
+    // If coming from search on home page, use search results
+    if (location.state?.isSearch && location.state?.searchResults) {
+      setVenues(location.state.searchResults);
+      setSearchPerformed(true);
+      setLoading(false);
+    } else {
+      // Otherwise fetch all venues
+      fetchVenues();
+    }
+  }, [location]);
 
   return (
     <>
       <div className="p-10"></div>
-      <SearchForm onSearch={handleSearch} />
+      <SearchForm
+        onSearch={handleSearch}
+        initialSearchText={location.state?.searchText}
+      />
       <SportsFilter />
 
       {/* Book Now */}
