@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
+import axios from "axios";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -16,31 +17,26 @@ export default function SignInPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/api/users/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await axios.post(
+        "http://localhost:3000/api/users/login",
+        {
           email,
           password,
-        }),
-      });
+        },
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.message || "Login failed");
-        return;
-      }
-
-      console.log("Login successful:", data);
-
+      console.log("Login successful:", res.data);
       navigate("/");
-
       alert("Logged in!");
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+      const errorMessage =
+        err.response?.data?.message || "Something went wrong";
+      alert(errorMessage);
     }
   };
 
