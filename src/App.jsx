@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import SignUp from "./pages/Signup";
 import Venue from "./pages/Venue";
 import BookingSummary from "./pages/BookingSummary";
+import NotFound from "./pages/NotFound";
 
 const App = () => {
   return (
@@ -23,6 +24,9 @@ const App = () => {
           <Route path="/venues" element={<Venue />} />
           <Route path="/booking-summary" element={<BookingSummary />} />
         </Route>
+
+        {/* 404 Not Found Route - must be last */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
