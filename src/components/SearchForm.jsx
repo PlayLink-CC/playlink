@@ -1,10 +1,24 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const SearchForm = ({ onSearch }) => {
-  const [searchText, setSearchText] = useState("");
+const SearchForm = ({
+  onSearch,
+  navigate: propNavigate,
+  initialSearchText,
+}) => {
+  const defaultNavigate = useNavigate();
+  const navigate = propNavigate || defaultNavigate;
+  const [searchText, setSearchText] = useState(initialSearchText || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Update search text if prop changes (e.g., when navigating from home)
+    if (initialSearchText !== undefined) {
+      setSearchText(initialSearchText);
+    }
+  }, [initialSearchText]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -23,7 +37,18 @@ const SearchForm = ({ onSearch }) => {
           search: searchText.trim(),
         },
       });
-      onSearch(response.data);
+      if (onSearch) {
+        onSearch(response.data);
+      } else {
+        // If no onSearch callback, navigate to venue page with search results
+        navigate("/venues", {
+          state: {
+            searchResults: response.data,
+            isSearch: true,
+            searchText: searchText.trim(),
+          },
+        });
+      }
     } catch (err) {
       console.error("Error searching venues:", err);
       setError("Something went wrong. Please try again.");
@@ -39,7 +64,9 @@ const SearchForm = ({ onSearch }) => {
 
     try {
       const response = await axios.get("http://localhost:3000/api/venues");
-      onSearch(response.data);
+      if (onSearch) {
+        onSearch(response.data);
+      }
     } catch (err) {
       console.error("Error fetching venues:", err);
       setError("Something went wrong. Please try again.");
