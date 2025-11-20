@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import SignUp from "./pages/Signup";
 import Venue from "./pages/Venue";
+import BookingSummary from "./pages/BookingSummary";
 
 const App = () => {
   return (
@@ -20,6 +21,7 @@ const App = () => {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/venues" element={<Venue />} />
+          <Route path="/booking-summary" element={<BookingSummary />} />
         </Route>
       </Routes>
     </BrowserRouter>

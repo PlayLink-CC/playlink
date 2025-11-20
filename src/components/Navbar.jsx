@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,15 +19,21 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
-            <a href="#" className="text-white hover:text-green-400 transition">
+            <Link to="/" className="text-white hover:text-green-400 transition">
               Home
-            </a>
-            <a href="#" className="text-white hover:text-green-400 transition">
+            </Link>
+            <Link
+              to="/venues"
+              className="text-white hover:text-green-400 transition"
+            >
               Venues
-            </a>
-            <a href="#" className="text-white hover:text-green-400 transition">
+            </Link>
+            <Link
+              to="/booking-summary"
+              className="text-white hover:text-green-400 transition"
+            >
               My Bookings
-            </a>
+            </Link>
             <button className="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 rounded-lg transition">
               Sign In
             </button>
@@ -66,18 +73,20 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4 space-y-3 border-t border-gray-700 pt-4">
-            <a
-              href="#"
+            <Link
+              to="/"
+              onClick={toggleMenu}
               className="block text-white hover:text-green-400 transition py-2"
             >
               Home
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              to="/venues"
+              onClick={toggleMenu}
               className="block text-white hover:text-green-400 transition py-2"
             >
               Venues
-            </a>
+            </Link>
             <a
               href="#"
               className="block text-white hover:text-green-400 transition py-2"
