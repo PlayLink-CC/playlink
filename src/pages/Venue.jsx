@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { MapPin, Check, Activity } from "lucide-react";
 import axios from "axios";
 
+import SearchForm from "../components/SearchForm";
+import SportsFilter from "../components/SportsFilter";
+
 const Venue = () => {
   const [venues, setVenues] = useState([]);
 
@@ -21,6 +24,10 @@ const Venue = () => {
 
   return (
     <>
+      <div className="p-10"></div>
+      <SearchForm />
+      <SportsFilter />
+
       {/* Book Now */}
       <div className="max-w-7xl mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
