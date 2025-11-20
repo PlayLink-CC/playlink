@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 const SearchForm = ({ onSearch }) => {
   const [searchText, setSearchText] = useState("");
@@ -17,17 +18,12 @@ const SearchForm = ({ onSearch }) => {
     setError(null);
 
     try {
-      const encodedSearch = encodeURIComponent(searchText.trim());
-      const response = await fetch(
-        `http://localhost:3000/api/venues?search=${encodedSearch}`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch venues");
-      }
-
-      const data = await response.json();
-      onSearch(data);
+      const response = await axios.get("http://localhost:3000/api/venues", {
+        params: {
+          search: searchText.trim(),
+        },
+      });
+      onSearch(response.data);
     } catch (err) {
       console.error("Error searching venues:", err);
       setError("Something went wrong. Please try again.");
@@ -42,14 +38,8 @@ const SearchForm = ({ onSearch }) => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/api/venues");
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch venues");
-      }
-
-      const data = await response.json();
-      onSearch(data);
+      const response = await axios.get("http://localhost:3000/api/venues");
+      onSearch(response.data);
     } catch (err) {
       console.error("Error fetching venues:", err);
       setError("Something went wrong. Please try again.");
