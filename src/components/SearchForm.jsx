@@ -36,6 +36,28 @@ const SearchForm = ({ onSearch }) => {
     }
   };
 
+  const handleClear = async () => {
+    setSearchText("");
+    setError(null);
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/api/venues");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch venues");
+      }
+
+      const data = await response.json();
+      onSearch(data);
+    } catch (err) {
+      console.error("Error fetching venues:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       {/* Error Message */}
@@ -47,8 +69,8 @@ const SearchForm = ({ onSearch }) => {
 
       {/* Search Form */}
       <form onSubmit={handleSearch}>
-        <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-4 md:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <input
               type="text"
               placeholder="Search Sport"
@@ -64,9 +86,17 @@ const SearchForm = ({ onSearch }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-6 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
             >
-              {loading ? "Searching..." : "Search Courts"}
+              {loading ? "Searching..." : "Search"}
+            </button>
+            <button
+              type="button"
+              onClick={handleClear}
+              disabled={loading}
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              Clear
             </button>
           </div>
         </div>

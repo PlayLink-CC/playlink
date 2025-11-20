@@ -26,7 +26,7 @@ const Venue = () => {
 
   const handleSearch = (searchResults) => {
     setVenues(searchResults);
-    setSearchPerformed(true);
+    setSearchPerformed(searchResults.length === 0 ? true : false);
   };
 
   useEffect(() => {
