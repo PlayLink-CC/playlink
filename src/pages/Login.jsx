@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
-import axios from "axios";
+import { Link } from "react-router-dom";
 
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -17,26 +17,31 @@ export default function SignInPage() {
     }
 
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/users/login",
-        {
+      const res = await fetch("http://localhost:3000/api/users/login", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           email,
           password,
-        },
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+        }),
+      });
 
-      console.log("Login successful:", res.data);
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Login failed");
+        return;
+      }
+
+      console.log("Login successful:", data);
+
       navigate("/");
+
       alert("Logged in!");
     } catch (err) {
       console.error(err);
-      const errorMessage =
-        err.response?.data?.message || "Something went wrong";
-      alert(errorMessage);
+      alert("Something went wrong");
     }
   };
 
@@ -92,12 +97,12 @@ export default function SignInPage() {
 
           <p className="text-center text-sm text-gray-600 mt-6">
             Don't have an account?{" "}
-            <a
-              href="#"
+            <Link
+              to="/signup"
               className="text-green-500 hover:text-green-600 font-medium transition"
             >
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </div>
