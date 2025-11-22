@@ -176,19 +176,19 @@ const SignUpPage = () => {
                 />
                 <span className="text-sm text-gray-700">
                   I agree to the{" "}
-                  <a
-                    href="#"
+                  <Link
+                    to="/terms-and-conditions"
                     className="text-green-500 hover:text-green-600 transition"
                   >
                     Terms of Service
-                  </a>{" "}
+                  </Link>{" "}
                   and{" "}
-                  <a
-                    href="#"
+                  <Link
+                    to="/privacy-policy"
                     className="text-green-500 hover:text-green-600 transition"
                   >
                     Privacy Policy
-                  </a>
+                  </Link>
                   . I understand that my information will be processed according
                   to these terms.
                 </span>

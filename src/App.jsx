@@ -9,6 +9,8 @@ import SignUp from "./pages/Signup";
 import Venue from "./pages/Venue";
 import BookingSummary from "./pages/BookingSummary";
 import NotFound from "./pages/NotFound";
+import TermsAndConditions from "./pages/TermsAndConditions";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 const App = () => {
   return (
@@ -17,6 +19,10 @@ const App = () => {
         {/* Auth pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+
+        {/* Terms and Conditions and Privacy Policy pages */}
+        <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
         {/* All routes inside this Route will use MainLayout */}
         <Route element={<MainLayout />}>
