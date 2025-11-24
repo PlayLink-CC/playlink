@@ -11,6 +11,7 @@ import BookingSummary from "./pages/BookingSummary";
 import NotFound from "./pages/NotFound";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import CreateBooking from "./pages/CreateBooking";
 
 const App = () => {
   return (
@@ -29,6 +30,7 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/venues" element={<Venue />} />
           <Route path="/booking-summary" element={<BookingSummary />} />
+          <Route path="/create-booking" element={<CreateBooking />} />
         </Route>
 
         {/* 404 Not Found Route - must be last */}
