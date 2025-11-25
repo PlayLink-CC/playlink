@@ -32,12 +32,6 @@ import { useNavigate } from "react-router-dom";
  * @returns {JSX.Element} Home page with search, filters, and trending venues
  */
 
-const navigate = useNavigate();
-
-const handleBookNow = (venue) => {
-  navigate("/create-booking", { state: { venue } });
-};
-
 const Home = () => {
   const [venues, setVenues] = useState([]);
 

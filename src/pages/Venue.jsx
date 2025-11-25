@@ -35,18 +35,18 @@ import { useNavigate } from "react-router-dom";
  * @returns {JSX.Element} Venues listing with search and filter
  */
 
-const navigate = useNavigate();
-
-const handleBookNow = (venue) => {
-  navigate("/create-booking", { state: { venue } });
-};
-
 const Venue = () => {
   const location = useLocation();
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchPerformed, setSearchPerformed] = useState(false);
 
+  const navigate = useNavigate();
+
+  const handleBookNow = (venue) => {
+    navigate("/create-booking", { state: { venue } });
+  };
+  
   const fetchVenues = async () => {
     try {
       setLoading(true);
