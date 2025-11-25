@@ -12,6 +12,8 @@ import axios from "axios";
 import SearchForm from "../components/SearchForm";
 import SportsFilter from "../components/SportsFilter";
 
+import { useNavigate } from "react-router-dom";
+
 /**
  * Venue Component - Venues listing page
  * Features:
@@ -32,12 +34,19 @@ import SportsFilter from "../components/SportsFilter";
  * @component
  * @returns {JSX.Element} Venues listing with search and filter
  */
+
 const Venue = () => {
   const location = useLocation();
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchPerformed, setSearchPerformed] = useState(false);
 
+  const navigate = useNavigate();
+
+  const handleBookNow = (venue) => {
+    navigate("/create-booking", { state: { venue } });
+  };
+  
   const fetchVenues = async () => {
     try {
       setLoading(true);
@@ -159,9 +168,13 @@ const Venue = () => {
                     </div>
                   </div>
 
-                  <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer">
+                  <button
+                    onClick={() => handleBookNow(venue)}
+                    className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer"
+                  >
                     Book Now
                   </button>
+
                 </div>
               </div>
             ))}
