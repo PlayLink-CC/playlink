@@ -1,149 +1,132 @@
 /**
  * @file SearchForm.jsx
- * @description Search form component for finding sports venues.
- * Allows users to search for venues by sport type and handles search results.
- * Includes error handling and loading states.
+ * @description Search form for venues: by name + location.
+ * - Used on Home (navigates to /venues with filters)
+ * - Used on Venues page (calls onSearch with filters)
  */
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 
 /**
- * SearchForm Component - Venue search interface
- * Features:
- * - Text input for sport search
- * - Location search input
- * - Search and Clear buttons
- * - Error handling with user feedback
- * - Loading state management
- * - Axios integration with backend API (http://localhost:3000/api/venues)
- * - Optional callback or navigation to results
- *
- * @component
- * @param {Object} props - Component props
- * @param {Function} [props.onSearch] - Optional callback when search results are received
- * @param {Function} [props.navigate] - Optional custom navigation function
- * @param {string} [props.initialSearchText] - Pre-filled search text
- * @returns {JSX.Element} Search form with error display
+ * @param {function} [onSearch]  - Called on Venues page with { name, location }
+ * @param {string}   [initialName]
+ * @param {string}   [initialLocation]
  */
-const SearchForm = ({
-  onSearch,
-  navigate: propNavigate,
-  initialSearchText,
-}) => {
-  const defaultNavigate = useNavigate();
-  const navigate = propNavigate || defaultNavigate;
-  const [searchText, setSearchText] = useState(initialSearchText || "");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const SearchForm = ({ onSearch, initialName = "", initialLocation = "" }) => {
+  const navigate = useNavigate();
+
+  const [venueName, setVenueName] = useState(initialName);
+  const [location, setLocation] = useState(initialLocation);
+
+  // keep inputs in sync if props change (e.g. coming from Home → Venues)
+  useEffect(() => {
+    setVenueName(initialName || "");
+  }, [initialName]);
 
   useEffect(() => {
-    // Update search text if prop changes (e.g., when navigating from home)
-    if (initialSearchText !== undefined) {
-      setSearchText(initialSearchText);
-    }
-  }, [initialSearchText]);
+    setLocation(initialLocation || "");
+  }, [initialLocation]);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
+  const triggerSearch = (filters) => {
+    const name = (filters.name || "").trim();
+    const loc = (filters.location || "").trim();
+    const hasFilters = !!(name || loc);
 
-    // Skip if search text is only whitespace
-    if (!searchText.trim()) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const response = await axios.get("http://localhost:3000/api/venues", {
-        params: {
-          search: searchText.trim(),
-        },
-      });
-      if (onSearch) {
-        onSearch(response.data);
+    if (onSearch) {
+      // Venues page – let parent handle filtering
+      onSearch({ name, location: loc });
+    } else {
+      // Home page – navigate to Venues with filters in location.state
+      if (hasFilters) {
+        navigate("/venues", { state: { filters: { name, location: loc } } });
       } else {
-        // If no onSearch callback, navigate to venue page with search results
-        navigate("/venues", {
-          state: {
-            searchResults: response.data,
-            isSearch: true,
-            searchText: searchText.trim(),
-          },
-        });
+        // empty search → just go to venues with no filters
+        navigate("/venues");
       }
-    } catch (err) {
-      console.error("Error searching venues:", err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleClear = async () => {
-    setSearchText("");
-    setError(null);
-    setLoading(true);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    triggerSearch({ name: venueName, location });
+  };
 
-    try {
-      const response = await axios.get("http://localhost:3000/api/venues");
-      if (onSearch) {
-        onSearch(response.data);
-      }
-    } catch (err) {
-      console.error("Error fetching venues:", err);
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+  const clearName = () => {
+    const newName = "";
+    setVenueName(newName);
+
+    // On Venues page: immediately re-filter.
+    if (onSearch) {
+      triggerSearch({ name: newName, location });
+    }
+  };
+
+  const clearLocation = () => {
+    const newLoc = "";
+    setLocation(newLoc);
+
+    if (onSearch) {
+      triggerSearch({ name: venueName, location: newLoc });
     }
   };
 
   return (
-    <>
-      {/* Error Message */}
-      {error && (
-        <div className="max-w-4xl mx-auto mb-4 p-4 bg-red-100 border border-red-400 rounded-lg">
-          <p className="text-red-700 font-semibold">{error}</p>
-        </div>
-      )}
-
-      {/* Search Form */}
-      <form onSubmit={handleSearch}>
-        <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-4 md:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <form onSubmit={handleSubmit}>
+      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-4 md:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search by venue name */}
+          <div className="relative">
             <input
               type="text"
-              placeholder="Search Sport"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Search by venue name"
+              value={venueName}
+              onChange={(e) => setVenueName(e.target.value)}
+              className="w-full px-4 py-3 pr-9 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-            <input
-              type="text"
-              placeholder="Search Location"
-              className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed whitespace-nowrap"
-            >
-              {loading ? "Searching..." : "Search"}
-            </button>
-            <button
-              type="button"
-              onClick={handleClear}
-              disabled={loading}
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              Clear
-            </button>
+            {venueName && (
+              <button
+                type="button"
+                onClick={clearName}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
+                aria-label="Clear venue name"
+              >
+                ×
+              </button>
+            )}
           </div>
+
+          {/* Search by location */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search by location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full px-4 py-3 pr-9 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            {location && (
+              <button
+                type="button"
+                onClick={clearLocation}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
+                aria-label="Clear location"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Search button */}
+          <button
+            type="submit"
+            className="bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition whitespace-nowrap"
+          >
+            Search
+          </button>
         </div>
-      </form>
-    </>
+      </div>
+    </form>
   );
 };
 
