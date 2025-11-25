@@ -1,36 +1,15 @@
-/**
- * @file Login.jsx
- * @description User login page for PlayLink.
- * Provides email/password authentication interface.
- * Authenticates users and redirects to home page on successful login.
- */
-
+// src/pages/Login.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; 
+import { useAuth } from "../context/AuthContext";
 
-/**
- * SignInPage Component - User login interface
- * Features:
- * - Email input field
- * - Password input field
- * - Form validation (both fields required)
- * - Error alerts for validation and API errors
- * - Link to Sign Up page
- * - POST request to backend login API (http://localhost:3000/api/users/login)
- * - Credentials-based authentication with HTTP-only cookies
- * - Navigation to home page on successful login
- *
- * @component
- * @returns {JSX.Element} Login form with email and password inputs
- */
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
-  const { fetchCurrentUser } = useAuth();  
+  const { login } = useAuth();
 
   const handleSubmit = async () => {
     console.log("Sign in attempted with:", { email, password });
@@ -41,38 +20,15 @@ export default function SignInPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/api/users/login", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.message || "Login failed");
-        return;
-      }
-
-      console.log("Login successful:", data);
-
-      await fetchCurrentUser(); // To Refresh AuthContext user state
+      const user = await login(email, password);
+      console.log("Login successful:", user);
 
       navigate("/");
-
       alert("Logged in!");
     } catch (err) {
       console.error(err);
-      alert("Something went wrong");
+      alert(err.message || "Login failed");
     }
-  };
-
-  const handleGoBack = () => {
-    navigate(-1); // go to previous page
   };
 
   return (
@@ -125,15 +81,6 @@ export default function SignInPage() {
             Sign in
           </button>
 
-          {/* Go back button */}
-          <button
-            type="button"
-            onClick={handleGoBack}
-            className="mt-3 w-full border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium py-3 rounded-lg transition"
-          >
-            Go back
-          </button>
-
           <p className="text-center text-sm text-gray-600 mt-6">
             Don't have an account?{" "}
             <Link
@@ -143,6 +90,14 @@ export default function SignInPage() {
               Sign up
             </Link>
           </p>
+
+          {/* Optional: back button */}
+          <button
+            onClick={() => navigate(-1)}
+            className="mt-4 text-sm text-gray-500 hover:text-gray-700"
+          >
+            ← Go back
+          </button>
         </div>
       </div>
     </div>
