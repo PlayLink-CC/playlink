@@ -1,31 +1,12 @@
 /**
  * @file Signup.jsx
  * @description User registration page for PlayLink.
- * Provides account creation interface with comprehensive form validation.
+ * Connects to backend registration endpoint with validation.
  */
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-/**
- * SignUpPage Component - User registration interface
- * Features:
- * - Full Name input
- * - Email address input
- * - Password input with 8-character minimum
- * - Confirm Password validation
- * - Terms & Conditions checkbox (required)
- * - Comprehensive form validation:
- *   - Required field checks
- *   - Password match verification
- *   - Password length validation (minimum 8 characters)
- *   - Terms agreement requirement
- * - Error message display
- * - Link to login page
- *
- * @component
- * @returns {JSX.Element} Registration form with validation
- */
 const SignUpPage = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -33,11 +14,15 @@ const SignUpPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
     setError("");
 
-    // Check if all fields are filled
+    // Frontend validations (same as before)
     if (!fullName.trim()) {
       setError("Please enter your full name.");
       return;
@@ -63,13 +48,11 @@ const SignUpPage = () => {
       return;
     }
 
-    // Check if passwords match
     if (password !== confirmPassword) {
       setError("Passwords do not match. Please try again.");
       return;
     }
 
-    // Check if terms and conditions are agreed to
     if (!agreeTerms) {
       setError(
         "You must agree to the Terms of Service and Privacy Policy to continue."
@@ -77,14 +60,46 @@ const SignUpPage = () => {
       return;
     }
 
-    console.log("Sign up attempted with:", {
-      fullName,
-      email,
-      agreeTerms,
-      password,
-      confirmPassword,
-    });
-    // Add your sign-up logic here
+    // ✅ Backend call
+    try {
+      setIsSubmitting(true);
+
+      const res = await fetch(
+        "http://localhost:3000/api/users/register",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            fullName,
+            email,
+            password,
+            // you can add phone/accountType later if needed:
+            // phone,
+            // accountType: "PLAYER",
+          }),
+        }
+      );
+
+      const data = await res.json();
+      console.log("Register response:", res.status, data);
+
+      if (!res.ok) {
+        setError(data.message || "Registration failed. Please try again.");
+        return;
+      }
+
+      // At this point user is created (and backend also sets cookie).
+      // To keep the flow simple, send them to login page:
+      navigate("/login");
+    } catch (err) {
+      console.error("Registration error:", err);
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -223,9 +238,14 @@ const SignUpPage = () => {
             {/* Submit Button */}
             <button
               onClick={handleSubmit}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 rounded-lg transition shadow-sm"
+              disabled={isSubmitting}
+              className={`w-full font-medium py-3 rounded-lg transition shadow-sm ${
+                isSubmitting
+                  ? "bg-green-300 cursor-not-allowed"
+                  : "bg-green-500 hover:bg-green-600 text-white"
+              }`}
             >
-              Create Account
+              {isSubmitting ? "Creating account..." : "Create Account"}
             </button>
 
             {/* Sign In Link */}
