@@ -1,5 +1,28 @@
+/**
+ * @file SportsFilter.jsx
+ * @description Sports category filter component displaying popular sports as clickable cards.
+ * Shows sports with emoji icons and color-coded backgrounds.
+ */
+
 import React from "react";
 
+/**
+ * SportsFilter Component - Display of sports categories
+ * Shows popular sports including:
+ * - Tennis
+ * - Basketball
+ * - Football
+ * - Badminton
+ *
+ * Each sport is displayed as a clickable card with:
+ * - Emoji icon
+ * - Sport name
+ * - Colored background
+ * - Hover effects
+ *
+ * @component
+ * @returns {JSX.Element} Grid of sports category cards
+ */
 const SportsFilter = () => {
   const sports = [
     { name: "Tennis", icon: "🎾", color: "bg-green-100" },

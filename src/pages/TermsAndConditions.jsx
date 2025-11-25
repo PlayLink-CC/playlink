@@ -1,5 +1,33 @@
+/**
+ * @file TermsAndConditions.jsx
+ * @description Terms and Conditions page for PlayLink.
+ * Legal document outlining user obligations and service limitations.
+ */
+
 import MainLayout from "../components/layout/MainLayout";
 
+/**
+ * TermsAndConditions Component - Service terms and legal information
+ * Sections include:
+ * - Acceptance (agreement to terms)
+ * - Eligibility (age 18+, information accuracy requirements)
+ * - Bookings & Payments (availability policy, Stripe payment processing)
+ * - Cancellation & Refunds (24-hour cancellation policy)
+ * - User Conduct (respectful behavior, account suspension terms)
+ * - Liability (disclaimer of responsibility for venue incidents)
+ * - Changes to Terms (update notification policy)
+ * - Contact information for support
+ *
+ * Features:
+ * - Responsive table of contents (desktop sticky nav, mobile dropdown select)
+ * - Collapsible sections for better readability
+ * - Last updated date (November 21, 2025)
+ * - Bookings section open by default
+ * - Support contact: support@playlink.example
+ *
+ * @component
+ * @returns {JSX.Element} Terms and conditions page with table of contents
+ */
 const TermsAndConditions = () => (
   <MainLayout>
     <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">

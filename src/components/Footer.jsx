@@ -1,5 +1,24 @@
+/**
+ * @file Footer.jsx
+ * @description Footer component for the PlayLink application.
+ * Displays company information, quick links, legal links, and contact details.
+ * Responsive layout using Tailwind CSS grid.
+ */
+
 import React from "react";
 
+/**
+ * Footer Component - Application footer section
+ * Includes:
+ * - PlayLink branding and tagline
+ * - Quick navigation links (About, How It Works, Contact, Support)
+ * - Legal links (Terms & Conditions, Privacy Policy, Cancellation Policy)
+ * - Contact information (Email and phone)
+ * - Copyright notice
+ *
+ * @component
+ * @returns {JSX.Element} Responsive footer with multiple sections
+ */
 const Footer = () => {
   return (
     <>

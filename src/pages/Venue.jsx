@@ -1,3 +1,9 @@
+/**
+ * @file Venue.jsx
+ * @description Venues listing page with search and filter capabilities.
+ * Displays all venues or search results in a grid layout.
+ */
+
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { MapPin, Check, Activity } from "lucide-react";
@@ -6,6 +12,26 @@ import axios from "axios";
 import SearchForm from "../components/SearchForm";
 import SportsFilter from "../components/SportsFilter";
 
+/**
+ * Venue Component - Venues listing page
+ * Features:
+ * - Displays all available venues or search results from API
+ * - Search form with real-time filtering
+ * - Loading state management
+ * - Empty state messaging when no venues found
+ * - Venue cards showing:
+ *   - Venue image with hover zoom
+ *   - Venue name and location
+ *   - Sport type (placeholder)
+ *   - Price per hour
+ *   - Amenities/facilities list
+ *   - Book Now button
+ * - Handles navigation from home page search results
+ * - Fetches from http://localhost:3000/api/venues
+ *
+ * @component
+ * @returns {JSX.Element} Venues listing with search and filter
+ */
 const Venue = () => {
   const location = useLocation();
   const [venues, setVenues] = useState([]);
