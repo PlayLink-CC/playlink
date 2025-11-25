@@ -52,10 +52,13 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
-            
-            <button className="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 rounded-lg transition">
+
+            <Link
+              to="/login"
+              className="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 rounded-lg transition"
+            >
               Sign In
-            </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -116,9 +119,13 @@ const Navbar = () => {
               My Bookings
             </Link>
 
-            <button className="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition">
+            <Link
+              to="/login"
+              onClick={toggleMenu}
+              className="block w-full text-center bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition"
+            >
               Sign In
-            </button>
+            </Link>
           </div>
         )}
       </div>
