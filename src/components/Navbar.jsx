@@ -1,30 +1,33 @@
-/**
- * @file Navbar.jsx
- * @description Navigation bar component for the PlayLink application.
- * Features a responsive design with desktop navigation menu and mobile hamburger menu.
- * Includes links to main pages and authentication button.
- */
-
+// src/components/Navbar.jsx
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-/**
- * Navbar Component - Application navigation header
- * Provides:
- * - Desktop navigation menu with links to Home, Venues, My Bookings, Legal pages
- * - Mobile responsive hamburger menu
- * - Sign In button
- * - Responsive design using Tailwind CSS grid breakpoints
- *
- * @component
- * @returns {JSX.Element} Navigation bar with responsive design
- */
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+  const toggleProfile = () => setIsProfileOpen((prev) => !prev);
+
+  const handleSignInClick = () => {
+    setIsProfileOpen(false);
+    navigate("/login");
   };
+
+  const handleLogoutClick = async () => {
+    await logout();
+    setIsProfileOpen(false);
+    navigate("/");
+  };
+
+  const initial =
+    isAuthenticated && user?.fullName
+      ? user.fullName.charAt(0).toUpperCase()
+      : "U";
 
   return (
     <nav className="bg-gray-900 px-4 sm:px-6 py-4">
@@ -53,46 +56,88 @@ const Navbar = () => {
               My Bookings
             </Link>
 
-            <Link
-              to="/login"
-              className="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 rounded-lg transition"
-            >
-              Sign In
-            </Link>
+            {/* Profile icon + dropdown */}
+            <div className="relative">
+              <button
+                onClick={toggleProfile}
+                className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold focus:outline-none"
+              >
+                {initial}
+              </button>
+
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-lg py-3 text-sm z-50">
+                  {isAuthenticated ? (
+                    <>
+                      <div className="px-4 pb-3 border-b border-gray-100">
+                        <p className="font-medium text-gray-900 truncate">
+                          {user.fullName || "User"}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleLogoutClick}
+                        className="w-full text-left px-4 py-2 mt-1 text-red-600 hover:bg-red-50 rounded-b-xl"
+                      >
+                        Sign out
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleSignInClick}
+                      className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl"
+                    >
+                      Sign in
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden text-white focus:outline-none"
-            aria-label="Toggle menu"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {/* Mobile Menu Button + Profile icon */}
+          <div className="flex items-center gap-3 md:hidden">
+            <button
+              onClick={toggleProfile}
+              className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold focus:outline-none"
             >
-              {isMenuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              )}
-            </svg>
-          </button>
+              {initial}
+            </button>
+
+            <button
+              onClick={toggleMenu}
+              className="md:hidden text-white focus:outline-none"
+              aria-label="Toggle menu"
+            >
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                {isMenuOpen ? (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                ) : (
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                )}
+              </svg>
+            </button>
+          </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Nav Links */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4 space-y-3 border-t border-gray-700 pt-4">
             <Link
@@ -102,7 +147,6 @@ const Navbar = () => {
             >
               Home
             </Link>
-
             <Link
               to="/venues"
               onClick={toggleMenu}
@@ -110,7 +154,6 @@ const Navbar = () => {
             >
               Venues
             </Link>
-
             <Link
               to="/booking-summary"
               onClick={toggleMenu}
@@ -118,14 +161,35 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
+          </div>
+        )}
 
-            <Link
-              to="/login"
-              onClick={toggleMenu}
-              className="block w-full text-center bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition"
-            >
-              Sign In
-            </Link>
+        {/* Mobile Profile dropdown */}
+        {isProfileOpen && (
+          <div className="md:hidden mt-2 w-full">
+            <div className="bg-white rounded-xl shadow-lg py-3 px-4 text-sm">
+              {isAuthenticated ? (
+                <>
+                  <p className="font-medium text-gray-900">
+                    {user.fullName || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2">{user.email}</p>
+                  <button
+                    onClick={handleLogoutClick}
+                    className="w-full text-left text-red-600 hover:bg-red-50 rounded-lg px-3 py-2"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleSignInClick}
+                  className="w-full text-left text-gray-700 hover:bg-gray-100 rounded-lg px-3 py-2"
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
