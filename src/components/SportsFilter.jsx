@@ -1,29 +1,15 @@
 /**
  * @file SportsFilter.jsx
  * @description Sports category filter component displaying popular sports as clickable cards.
- * Shows sports with emoji icons and color-coded backgrounds.
  */
 
 import React from "react";
 
 /**
- * SportsFilter Component - Display of sports categories
- * Shows popular sports including:
- * - Tennis
- * - Basketball
- * - Football
- * - Badminton
- *
- * Each sport is displayed as a clickable card with:
- * - Emoji icon
- * - Sport name
- * - Colored background
- * - Hover effects
- *
- * @component
- * @returns {JSX.Element} Grid of sports category cards
+ * @param {string|null} selectedSport  - e.g. "Tennis"
+ * @param {function}   [onSportToggle] - called with sport name or null when toggled
  */
-const SportsFilter = () => {
+const SportsFilter = ({ selectedSport, onSportToggle }) => {
   const sports = [
     { name: "Tennis", icon: "🎾", color: "bg-green-100" },
     { name: "Basketball", icon: "🏀", color: "bg-orange-100" },
@@ -31,31 +17,46 @@ const SportsFilter = () => {
     { name: "Badminton", icon: "🏸", color: "bg-purple-100" },
   ];
 
-  return (
-    <>
-      {/* Sports Filter */}
-      <div className="max-w-7xl mx-auto px-4 py-16">
-        {/* <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-          Popular Sports
-        </h2> */}
+  const handleClick = (sportName) => {
+    if (!onSportToggle) return;
+    // clicking again toggles off
+    const next = selectedSport === sportName ? null : sportName;
+    onSportToggle(next);
+  };
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {sports.map((sport, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-2xl shadow-md hover:shadow-xl transition p-8 text-center cursor-pointer"
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {sports.map((sport) => {
+          const active = selectedSport === sport.name;
+          return (
+            <button
+              key={sport.name}
+              type="button"
+              onClick={() => handleClick(sport.name)}
+              className={
+                "bg-white rounded-2xl shadow-md hover:shadow-xl transition p-6 md:p-8 text-center cursor-pointer border " +
+                (active ? "border-green-500 ring-2 ring-green-400" : "border-transparent")
+              }
             >
               <div
                 className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl mx-auto mb-4 ${sport.color}`}
               >
                 {sport.icon}
               </div>
-              <h3 className="font-semibold text-gray-900">{sport.name}</h3>
-            </div>
-          ))}
-        </div>
+              <h3
+                className={
+                  "font-semibold " +
+                  (active ? "text-green-600" : "text-gray-900")
+                }
+              >
+                {sport.name}
+              </h3>
+            </button>
+          );
+        })}
       </div>
-    </>
+    </div>
   );
 };
 

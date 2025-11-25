@@ -1,93 +1,173 @@
 /**
  * @file Venue.jsx
  * @description Venues listing page with search and filter capabilities.
- * Displays all venues or search results in a grid layout.
+ * Uses backend search for sport filtering and client-side filtering
+ * for venue name + location.
  */
 
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MapPin, Check, Activity } from "lucide-react";
 import axios from "axios";
 
 import SearchForm from "../components/SearchForm";
 import SportsFilter from "../components/SportsFilter";
 
-import { useNavigate } from "react-router-dom";
-
-/**
- * Venue Component - Venues listing page
- * Features:
- * - Displays all available venues or search results from API
- * - Search form with real-time filtering
- * - Loading state management
- * - Empty state messaging when no venues found
- * - Venue cards showing:
- *   - Venue image with hover zoom
- *   - Venue name and location
- *   - Sport type (placeholder)
- *   - Price per hour
- *   - Amenities/facilities list
- *   - Book Now button
- * - Handles navigation from home page search results
- * - Fetches from http://localhost:3000/api/venues
- *
- * @component
- * @returns {JSX.Element} Venues listing with search and filter
- */
-
 const Venue = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // All venues from backend for the current sport filter
+  const [baseVenues, setBaseVenues] = useState([]);
+  // Venues after applying text filters
   const [venues, setVenues] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [searchPerformed, setSearchPerformed] = useState(false);
 
-  const navigate = useNavigate();
+  const [filters, setFilters] = useState({
+    name: "",
+    location: "",
+    sport: null,
+  });
 
-  const handleBookNow = (venue) => {
-    navigate("/create-booking", { state: { venue } });
+  // Apply local (name/location) filters on top of baseVenues
+  const applyTextFilters = (sourceVenues, name, loc) => {
+    const nameTerm = name.trim().toLowerCase();
+    const locTerm = loc.trim().toLowerCase();
+
+    let filtered = [...sourceVenues];
+
+    if (nameTerm) {
+      filtered = filtered.filter((v) =>
+        (v.venue_name || v.name || "").toLowerCase().includes(nameTerm)
+      );
+    }
+
+    if (locTerm) {
+      filtered = filtered.filter((v) => {
+        const locField = (
+          v.location ||
+          v.city ||
+          v.address ||
+          ""
+        ).toLowerCase();
+        return locField.includes(locTerm);
+      });
+    }
+
+    setVenues(filtered);
+    setSearchPerformed(
+      !!(nameTerm || locTerm || filters.sport) && sourceVenues.length > 0
+    );
   };
-  
-  const fetchVenues = async () => {
+
+  // Initial load (no sport filter)
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get("http://localhost:3000/api/venues");
+        const data = res.data || [];
+        setBaseVenues(data);
+
+        // Pick up filters if we navigated from Home
+        const initialName = location.state?.filters?.name || "";
+        const initialLocation = location.state?.filters?.location || "";
+
+        setFilters((prev) => ({
+          ...prev,
+          name: initialName,
+          location: initialLocation,
+        }));
+
+        applyTextFilters(data, initialName, initialLocation);
+      } catch (err) {
+        console.error("Error fetching venues:", err);
+        setBaseVenues([]);
+        setVenues([]);
+        setSearchPerformed(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Called by SearchForm on the Venues page
+  const handleTextSearch = ({ name, location: loc }) => {
+    const newName = name || "";
+    const newLoc = loc || "";
+
+    setFilters((prev) => ({
+      ...prev,
+      name: newName,
+      location: newLoc,
+    }));
+
+    applyTextFilters(baseVenues, newName, newLoc);
+  };
+
+  // Called when a sport tile is toggled
+  const handleSportToggle = async (sportNameOrNull) => {
+    setFilters((prev) => ({
+      ...prev,
+      sport: sportNameOrNull,
+    }));
+
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:3000/api/venues");
-      console.log(res.data);
-      setVenues(res.data);
-      setSearchPerformed(false);
+
+      let res;
+      if (sportNameOrNull) {
+        // Use backend search for that sport
+        res = await axios.get("http://localhost:3000/api/venues", {
+          params: { search: sportNameOrNull },
+        });
+      } else {
+        // Clearing sport filter → fetch all venues again
+        res = await axios.get("http://localhost:3000/api/venues");
+      }
+
+      const data = res.data || [];
+      setBaseVenues(data);
+
+      // Reapply name/location filters on top of this new base set
+      applyTextFilters(data, filters.name, filters.location);
     } catch (err) {
-      console.error("Error fetching venues:", err);
+      console.error("Error fetching sport-filtered venues:", err);
+      setBaseVenues([]);
+      setVenues([]);
+      setSearchPerformed(false);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (searchResults) => {
-    setVenues(searchResults);
-    setSearchPerformed(searchResults.length === 0 ? true : false);
+  const handleBookNow = (venue) => {
+    navigate("/create-booking", { state: { venue } });
   };
-
-  useEffect(() => {
-    // If coming from search on home page, use search results
-    if (location.state?.isSearch && location.state?.searchResults) {
-      setVenues(location.state.searchResults);
-      setSearchPerformed(true);
-      setLoading(false);
-    } else {
-      // Otherwise fetch all venues
-      fetchVenues();
-    }
-  }, [location]);
 
   return (
     <>
       <div className="p-10"></div>
-      <SearchForm
-        onSearch={handleSearch}
-        initialSearchText={location.state?.searchText}
-      />
-      <SportsFilter />
 
-      {/* Book Now */}
+      {/* Search by venue name + location */}
+      <SearchForm
+        onSearch={handleTextSearch}
+        initialName={location.state?.filters?.name || ""}
+        initialLocation={location.state?.filters?.location || ""}
+      />
+
+      {/* Sport tiles as toggle filter */}
+      <SportsFilter
+        selectedSport={filters.sport}
+        onSportToggle={handleSportToggle}
+      />
+
+      {/* Venues grid */}
       <div className="max-w-7xl mx-auto px-4 py-16">
         <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
           Book Now
@@ -102,7 +182,15 @@ const Venue = () => {
         {!loading && searchPerformed && venues.length === 0 && (
           <div className="text-center py-12">
             <p className="text-gray-600 text-lg">
-              No venues found. Try a different search.
+              No venues found. Try changing your filters.
+            </p>
+          </div>
+        )}
+
+        {!loading && !searchPerformed && venues.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">
+              No venues are available yet.
             </p>
           </div>
         )}
@@ -131,13 +219,14 @@ const Venue = () => {
                   {/* Location */}
                   <div className="flex items-center text-gray-600 mb-3">
                     <MapPin size={16} className="mr-1" />
-                    <span className="text-sm">{venue.location}</span>
+                    <span className="text-sm">
+                      {venue.location || venue.city || venue.address}
+                    </span>
                   </div>
 
-                  {/* Court Type — you don't have courtType in API so using placeholder */}
+                  {/* Sport label (still generic until backend exposes sports) */}
                   <div className="flex items-center text-gray-600 mb-3">
                     <Activity size={16} className="mr-1" />
-                    {/* need to data court type in database */}
                     <span className="text-sm">Sport Court</span>
                   </div>
 
@@ -150,23 +239,27 @@ const Venue = () => {
                   </div>
 
                   {/* Amenities */}
-                  <div className="mb-4">
-                    <p className="text-sm font-semibold text-gray-700 mb-2">
-                      Available Facilities:
-                    </p>
-
-                    <div className="space-y-1">
-                      {venue.amenities.split(",").map((amenity, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center text-sm text-gray-600"
-                        >
-                          <Check size={14} className="mr-2 text-green-500" />
-                          {amenity.trim()}
-                        </div>
-                      ))}
+                  {venue.amenities && (
+                    <div className="mb-4">
+                      <p className="text-sm font-semibold text-gray-700 mb-2">
+                        Available Facilities:
+                      </p>
+                      <div className="space-y-1">
+                        {venue.amenities.split(",").map((amenity, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center text-sm text-gray-600"
+                          >
+                            <Check
+                              size={14}
+                              className="mr-2 text-green-500"
+                            />
+                            {amenity.trim()}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <button
                     onClick={() => handleBookNow(venue)}
@@ -174,7 +267,6 @@ const Venue = () => {
                   >
                     Book Now
                   </button>
-
                 </div>
               </div>
             ))}
