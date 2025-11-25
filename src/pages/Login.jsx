@@ -67,11 +67,15 @@ export default function SignInPage() {
     }
   };
 
+  const handleGoBack = () => {
+    navigate(-1); // go to previous page
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">PlayLink</h1>{" "}
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">PlayLink</h1>
           <p className="text-gray-600">Sign in to PlayLink</p>
         </div>
 
@@ -115,6 +119,15 @@ export default function SignInPage() {
             className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 rounded-lg transition shadow-sm"
           >
             Sign in
+          </button>
+
+          {/* Go back button */}
+          <button
+            type="button"
+            onClick={handleGoBack}
+            className="mt-3 w-full border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium py-3 rounded-lg transition"
+          >
+            Go back
           </button>
 
           <p className="text-center text-sm text-gray-600 mt-6">
