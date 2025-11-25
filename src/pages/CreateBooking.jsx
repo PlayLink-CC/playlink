@@ -1,295 +1,177 @@
-/**
- * @file CreateBooking.jsx
- * @description Court detail and booking page.
- * Displays venue information, image gallery, amenities, and booking form.
- */
+// src/pages/CreateBooking.jsx
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { MapPin, Clock, DollarSign, Calendar } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
 
-import React, { useState } from "react";
-import { MapPin, Clock, DollarSign, CheckCircle, Calendar } from "lucide-react";
+const CreateBooking = () => {
+  const { user, isAuthenticated } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-/**
- * CourtDetailPage Component - Court details and booking interface
- * Features:
- * - Image gallery with thumbnail selection
- * - Court information (name, location, type, price)
- * - Detailed description
- * - Facilities list with checkmarks (8 facilities)
- * - Embedded Google Maps with court location
- * - Booking form with:
- *   - Date picker (minimum today's date)
- *   - Time slot selection (8 AM - 7 PM, 12 options)
- *   - Hours selector (1-8 hours with +/- buttons)
- *   - Real-time price calculation ($40 per hour base rate)
- *   - Book Now button with validation
- * - Sticky booking panel on larger screens
- * - Form validation before booking
- *
- * @component
- * @returns {JSX.Element} Court detail page with booking interface
- */
-const CourtDetailPage = () => {
-  const [selectedImage, setSelectedImage] = useState(0);
+  const venue = location.state?.venue;
+
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [hours, setHours] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-  const courtImages = [
-    "https://images.unsplash.com/photo-1575361204480-aadea25e6e68?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&h=600&fit=crop",
-    "https://images.unsplash.com/photo-1594623930572-300a3011d9ae?w=800&h=600&fit=crop",
-  ];
+  useEffect(() => {
+    if (!venue) {
+      // No venue passed (e.g. direct URL) → redirect to venues
+      navigate("/venues");
+    }
+  }, [venue, navigate]);
 
-  const availableTimes = [
-    "08:00 AM",
-    "09:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "01:00 PM",
-    "02:00 PM",
-    "03:00 PM",
-    "04:00 PM",
-    "05:00 PM",
-    "06:00 PM",
-    "07:00 PM",
-  ];
+  if (!venue) return null;
 
-  const facilities = [
-    "Changing Rooms",
-    "Parking Available",
-    "Equipment Rental",
-    "Shower Facilities",
-    "Water Fountains",
-    "First Aid Kit",
-    "Lighting System",
-    "Seating Area",
-  ];
+  const totalPrice =
+    Number(venue.price_per_hour || 0) * Number(hours || 1);
 
-  const handleBooking = () => {
-    if (selectedDate && selectedTime && hours) {
-      alert(
-        `Booking Request:\nDate: ${selectedDate}\nTime: ${selectedTime}\nHours: ${hours}\nTotal Cost: $${
-          40 * hours
-        }`
+  const handleCheckout = async () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    if (!selectedDate || !selectedTime || !hours) {
+      alert("Please select date, time and duration");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(
+        "http://localhost:3000/api/bookings/checkout-session",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            venueId: venue.venue_id,
+            date: selectedDate,
+            time: selectedTime,
+            hours: Number(hours),
+          }),
+        }
       );
-    } else {
-      alert("Please select date, time, and number of hours");
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Failed to start payment");
+        return;
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Image Gallery */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-          <div className="relative h-96 bg-gray-200">
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-8">
+        {/* Left: venue info */}
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="h-56 w-full overflow-hidden">
             <img
-              src={courtImages[selectedImage]}
-              alt="Court view"
+              src={venue.primary_image}
+              alt={venue.venue_name}
               className="w-full h-full object-cover"
             />
           </div>
-          <div className="grid grid-cols-3 gap-2 p-4">
-            {courtImages.map((img, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedImage(index)}
-                className={`relative h-24 rounded-lg overflow-hidden border-2 transition-all ${
-                  selectedImage === index
-                    ? "border-blue-500"
-                    : "border-transparent"
-                }`}
-              >
-                <img
-                  src={img}
-                  alt={`Court ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
+          <div className="p-6">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              {venue.venue_name}
+            </h1>
+
+            <div className="flex items-center text-gray-600 mb-2">
+              <MapPin size={18} className="mr-2" />
+              <span>{venue.location}</span>
+            </div>
+
+            <div className="flex items-center text-green-600 font-semibold mb-2">
+              <DollarSign size={18} className="mr-1" />
+              <span> LKR {venue.price_per_hour}/hour</span>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Court Information */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Elite Basketball Court
-              </h1>
-              <div className="flex items-center text-gray-600 mb-4">
-                <MapPin className="w-5 h-5 mr-2" />
-                <span>
-                  123 Sports Avenue, Downtown District, New York, NY 10001
-                </span>
-              </div>
+        {/* Right: booking form */}
+        <div className="bg-white rounded-2xl shadow-md p-6">
+          <h2 className="text-xl font-semibold mb-4">Booking details</h2>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="flex items-center">
-                  <Clock className="w-5 h-5 mr-2 text-blue-600" />
-                  <div>
-                    <p className="text-sm text-gray-500">Court Type</p>
-                    <p className="font-semibold">Indoor Basketball</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <DollarSign className="w-5 h-5 mr-2 text-green-600" />
-                  <div>
-                    <p className="text-sm text-gray-500">Per Hour Rate</p>
-                    <p className="font-semibold text-green-600">$40.00</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-3">
-                  Description
-                </h2>
-                <p className="text-gray-600 leading-relaxed">
-                  Experience premium basketball action on our state-of-the-art
-                  indoor court. Featuring professional-grade hardwood flooring,
-                  adjustable hoops, and excellent lighting, this court is
-                  perfect for casual games, training sessions, or competitive
-                  matches. The climate-controlled environment ensures year-round
-                  comfort, while the spacious layout accommodates full 5-on-5
-                  games with plenty of room on the sidelines. Whether you're a
-                  seasoned player or just starting out, our court provides the
-                  ideal setting for an exceptional basketball experience.
-                </p>
-              </div>
+          <label className="block mb-4">
+            <span className="block text-sm font-medium text-gray-700 mb-1">
+              Date
+            </span>
+            <div className="flex items-center border rounded-lg px-3 py-2">
+              <Calendar size={18} className="mr-2 text-gray-500" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full outline-none text-sm"
+              />
             </div>
+          </label>
 
-            {/* Facilities */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Available Facilities
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                {facilities.map((facility, index) => (
-                  <div key={index} className="flex items-center">
-                    <CheckCircle className="w-5 h-5 text-green-500 mr-2 shrink-0" />
-                    <span className="text-gray-700">{facility}</span>
-                  </div>
-                ))}
-              </div>
+          <label className="block mb-4">
+            <span className="block text-sm font-medium text-gray-700 mb-1">
+              Start time
+            </span>
+            <div className="flex items-center border rounded-lg px-3 py-2">
+              <Clock size={18} className="mr-2 text-gray-500" />
+              <input
+                type="time"
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                className="w-full outline-none text-sm"
+              />
             </div>
+          </label>
 
-            {/* Map */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Location</h2>
-              <div className="w-full h-64 bg-gray-200 rounded-lg overflow-hidden">
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d193595.15830869428!2d-74.119763973046!3d40.69766374874431!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c24fa5d33f083b%3A0xc80b8f06e177fe62!2sNew%20York%2C%20NY!5e0!3m2!1sen!2sus!4v1234567890123"
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Court Location"
-                ></iframe>
-              </div>
+          <label className="block mb-6">
+            <span className="block text-sm font-medium text-gray-700 mb-1">
+              Duration (hours)
+            </span>
+            <input
+              type="number"
+              min="1"
+              max="6"
+              value={hours}
+              onChange={(e) => setHours(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+            />
+          </label>
+
+          <div className="border-t pt-4 mb-4">
+            <div className="flex justify-between text-sm text-gray-600 mb-1">
+              <span>Price per hour</span>
+              <span>LKR {venue.price_per_hour}</span>
+            </div>
+            <div className="flex justify-between text-base font-semibold">
+              <span>Total</span>
+              <span>LKR {totalPrice.toFixed(2)}</span>
             </div>
           </div>
 
-          {/* Booking Section */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Book This Court
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Calendar className="w-4 h-4 inline mr-1" />
-                    Select Date
-                  </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Clock className="w-4 h-4 inline mr-1" />
-                    Select Time
-                  </label>
-                  <select
-                    value={selectedTime}
-                    onChange={(e) => setSelectedTime(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer"
-                  >
-                    <option value="">Choose a time</option>
-                    {availableTimes.map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Hours
-                  </label>
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={() => setHours(Math.max(1, hours - 1))}
-                      className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-semibold cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="text-2xl font-bold w-12 text-center">
-                      {hours}
-                    </span>
-                    <button
-                      onClick={() => setHours(Math.min(8, hours + 1))}
-                      className="w-10 h-10 rounded-lg bg-gray-200 hover:bg-gray-300 flex items-center justify-center font-semibold cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-600">Rate per hour</span>
-                    <span className="font-semibold">$40.00</span>
-                  </div>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-600">Hours</span>
-                    <span className="font-semibold">{hours}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-lg">
-                    <span className="font-bold">Total</span>
-                    <span className="font-bold text-green-600">
-                      ${40 * hours}.00
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleBooking}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition-colors mt-6 cursor-pointer"
-                >
-                  Book Now
-                </button>
-
-                <p className="text-xs text-gray-500 text-center mt-2">
-                  You'll receive a confirmation email after booking
-                </p>
-              </div>
-            </div>
-          </div>
+          <button
+            onClick={handleCheckout}
+            disabled={loading}
+            className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition"
+          >
+            {loading ? "Redirecting to payment..." : "Proceed to payment"}
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default CourtDetailPage;
+export default CreateBooking;
