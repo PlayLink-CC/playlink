@@ -52,18 +52,7 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
-            <Link
-              to="/terms-and-conditions"
-              className="text-white hover:text-green-400 transition"
-            >
-              Terms & Conditions
-            </Link>
-            <Link
-              to="/privacy-policy"
-              className="text-white hover:text-green-400 transition"
-            >
-              Privacy Policy
-            </Link>
+            
             <button className="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 rounded-lg transition">
               Sign In
             </button>
@@ -110,6 +99,7 @@ const Navbar = () => {
             >
               Home
             </Link>
+
             <Link
               to="/venues"
               onClick={toggleMenu}
@@ -117,6 +107,7 @@ const Navbar = () => {
             >
               Venues
             </Link>
+
             <Link
               to="/booking-summary"
               onClick={toggleMenu}
@@ -124,20 +115,7 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
-            <Link
-              to="/terms-and-conditions"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              Terms & Conditions
-            </Link>
-            <Link
-              to="/privacy-policy"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              Privacy Policy
-            </Link>
+
             <button className="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition">
               Sign In
             </button>
