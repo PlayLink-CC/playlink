@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -6,27 +7,27 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const { user, initializing, logout } = useAuth();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleProfile = () => setIsProfileOpen((prev) => !prev);
-
-  const handleSignOut = async () => {
-    await logout();
-    setIsProfileOpen(false);
-    navigate("/");
-  };
 
   const handleSignInClick = () => {
     setIsProfileOpen(false);
     navigate("/login");
   };
 
-  const avatarLetter =
-    user?.fullName?.trim()?.charAt(0)?.toUpperCase() ??
-    user?.email?.trim()?.charAt(0)?.toUpperCase() ??
-    "U";
+  const handleLogoutClick = async () => {
+    await logout();
+    setIsProfileOpen(false);
+    navigate("/");
+  };
+
+  const initial =
+    isAuthenticated && user?.fullName
+      ? user.fullName.charAt(0).toUpperCase()
+      : "U";
 
   return (
     <nav className="bg-gray-900 px-4 sm:px-6 py-4">
@@ -55,121 +56,59 @@ const Navbar = () => {
               My Bookings
             </Link>
 
-            {/* Profile dropdown */}
+            {/* Profile icon + dropdown */}
             <div className="relative">
               <button
                 onClick={toggleProfile}
-                className="flex items-center gap-2 rounded-full border border-gray-700 bg-gray-800 px-3 py-1.5 text-white hover:bg-gray-700 transition"
+                className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold focus:outline-none"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 text-sm font-semibold">
-                  {avatarLetter}
-                </div>
-                <svg
-                  className={`w-4 h-4 transition-transform ${
-                    isProfileOpen ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                {initial}
               </button>
 
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-lg bg-gray-900 border border-gray-700 shadow-lg p-4 z-20">
-                  {initializing ? (
-                    <p className="text-sm text-gray-400">Checking session...</p>
-                  ) : user ? (
+                <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-lg py-3 text-sm z-50">
+                  {isAuthenticated ? (
                     <>
-                      <div className="mb-3">
-                        <p className="text-sm font-semibold text-white">
+                      <div className="px-4 pb-3 border-b border-gray-100">
+                        <p className="font-medium text-gray-900 truncate">
                           {user.fullName || "User"}
                         </p>
-                        <p className="text-xs text-gray-400">{user.email}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {user.email}
+                        </p>
                       </div>
                       <button
-                        onClick={handleSignOut}
-                        className="w-full rounded-md bg-red-500 hover:bg-red-600 text-white text-sm py-2 transition"
+                        onClick={handleLogoutClick}
+                        className="w-full text-left px-4 py-2 mt-1 text-red-600 hover:bg-red-50 rounded-b-xl"
                       >
                         Sign out
                       </button>
                     </>
                   ) : (
-                    <>
-                      <p className="text-xs text-gray-400 mb-3">
-                        You are not signed in.
-                      </p>
-                      <button
-                        onClick={handleSignInClick}
-                        className="w-full rounded-md bg-green-500 hover:bg-green-600 text-white text-sm py-2 transition"
-                      >
-                        Sign in
-                      </button>
-                    </>
+                    <button
+                      onClick={handleSignInClick}
+                      className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl"
+                    >
+                      Sign in
+                    </button>
                   )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Mobile right side: profile + hamburger */}
+          {/* Mobile Menu Button + Profile icon */}
           <div className="flex items-center gap-3 md:hidden">
-            {/* Profile icon (same logic, simpler dropdown) */}
-            <div className="relative">
-              <button
-                onClick={toggleProfile}
-                className="flex items-center justify-center h-9 w-9 rounded-full bg-gray-800 border border-gray-700 text-white"
-                aria-label="Profile menu"
-              >
-                {avatarLetter}
-              </button>
+            <button
+              onClick={toggleProfile}
+              className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold focus:outline-none"
+            >
+              {initial}
+            </button>
 
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-lg bg-gray-900 border border-gray-700 shadow-lg p-4 z-20">
-                  {initializing ? (
-                    <p className="text-sm text-gray-400">Checking session...</p>
-                  ) : user ? (
-                    <>
-                      <div className="mb-3">
-                        <p className="text-sm font-semibold text-white">
-                          {user.fullName || "User"}
-                        </p>
-                        <p className="text-xs text-gray-400">{user.email}</p>
-                      </div>
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full rounded-md bg-red-500 hover:bg-red-600 text-white text-sm py-2 transition"
-                      >
-                        Sign out
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs text-gray-400 mb-3">
-                        You are not signed in.
-                      </p>
-                      <button
-                        onClick={handleSignInClick}
-                        className="w-full rounded-md bg-green-500 hover:bg-green-600 text-white text-sm py-2 transition"
-                      >
-                        Sign in
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Mobile Menu Button */}
             <button
               onClick={toggleMenu}
-              className="text-white focus:outline-none"
+              className="md:hidden text-white focus:outline-none"
               aria-label="Toggle menu"
             >
               <svg
@@ -198,7 +137,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu links */}
+        {/* Mobile Nav Links */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4 space-y-3 border-t border-gray-700 pt-4">
             <Link
@@ -222,6 +161,35 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
+          </div>
+        )}
+
+        {/* Mobile Profile dropdown */}
+        {isProfileOpen && (
+          <div className="md:hidden mt-2 w-full">
+            <div className="bg-white rounded-xl shadow-lg py-3 px-4 text-sm">
+              {isAuthenticated ? (
+                <>
+                  <p className="font-medium text-gray-900">
+                    {user.fullName || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2">{user.email}</p>
+                  <button
+                    onClick={handleLogoutClick}
+                    className="w-full text-left text-red-600 hover:bg-red-50 rounded-lg px-3 py-2"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleSignInClick}
+                  className="w-full text-left text-gray-700 hover:bg-gray-100 rounded-lg px-3 py-2"
+                >
+                  Sign in
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
