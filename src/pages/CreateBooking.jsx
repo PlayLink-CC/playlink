@@ -1,6 +1,32 @@
+/**
+ * @file CreateBooking.jsx
+ * @description Court detail and booking page.
+ * Displays venue information, image gallery, amenities, and booking form.
+ */
+
 import React, { useState } from "react";
 import { MapPin, Clock, DollarSign, CheckCircle, Calendar } from "lucide-react";
 
+/**
+ * CourtDetailPage Component - Court details and booking interface
+ * Features:
+ * - Image gallery with thumbnail selection
+ * - Court information (name, location, type, price)
+ * - Detailed description
+ * - Facilities list with checkmarks (8 facilities)
+ * - Embedded Google Maps with court location
+ * - Booking form with:
+ *   - Date picker (minimum today's date)
+ *   - Time slot selection (8 AM - 7 PM, 12 options)
+ *   - Hours selector (1-8 hours with +/- buttons)
+ *   - Real-time price calculation ($40 per hour base rate)
+ *   - Book Now button with validation
+ * - Sticky booking panel on larger screens
+ * - Form validation before booking
+ *
+ * @component
+ * @returns {JSX.Element} Court detail page with booking interface
+ */
 const CourtDetailPage = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedDate, setSelectedDate] = useState("");

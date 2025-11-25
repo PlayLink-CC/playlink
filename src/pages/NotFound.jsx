@@ -1,6 +1,30 @@
+/**
+ * @file NotFound.jsx
+ * @description 404 Not Found error page.
+ * Displays when user navigates to a non-existent route.
+ */
+
 import { useNavigate } from "react-router-dom";
 import { Home, ArrowLeft } from "lucide-react";
 
+/**
+ * NotFound Component - 404 error page
+ * Features:
+ * - Large 404 heading with gradient text color
+ * - Decorative underline separator
+ * - Error message explaining page not found
+ * - Animated SVG illustration with blur effect
+ * - Action buttons with hover animations:
+ *   - "Go to Home" button (navigate to /)
+ *   - "Go Back" button (navigate to previous page)
+ * - Decorative background animations (blob effects)
+ * - Helpful navigation hint text
+ * - Fully responsive design (mobile to desktop)
+ * - Professional styling with gradient backgrounds
+ *
+ * @component
+ * @returns {JSX.Element} 404 error page with navigation options
+ */
 const NotFound = () => {
   const navigate = useNavigate();
 

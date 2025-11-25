@@ -1,6 +1,24 @@
+/**
+ * @file Navbar.jsx
+ * @description Navigation bar component for the PlayLink application.
+ * Features a responsive design with desktop navigation menu and mobile hamburger menu.
+ * Includes links to main pages and authentication button.
+ */
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
+/**
+ * Navbar Component - Application navigation header
+ * Provides:
+ * - Desktop navigation menu with links to Home, Venues, My Bookings, Legal pages
+ * - Mobile responsive hamburger menu
+ * - Sign In button
+ * - Responsive design using Tailwind CSS grid breakpoints
+ *
+ * @component
+ * @returns {JSX.Element} Navigation bar with responsive design
+ */
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 

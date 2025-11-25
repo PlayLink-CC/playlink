@@ -1,5 +1,31 @@
+/**
+ * @file PrivacyPolicy.jsx
+ * @description Privacy Policy page for PlayLink.
+ * Details how user data is collected, used, stored, and protected.
+ */
+
 import MainLayout from "../components/layout/MainLayout";
 
+/**
+ * PrivacyPolicy Component - Privacy information page
+ * Sections include:
+ * - Information We Collect (personal data, booking details, usage data)
+ * - How We Use Information (processing, communication, improvement)
+ * - Payments (Stripe integration, no full card storage)
+ * - Cookies & Tracking
+ * - Sharing & Third Parties (limited to necessary service providers)
+ * - Security measures and safeguards
+ * - User Rights (access, correction, deletion of personal data)
+ *
+ * Features:
+ * - Responsive table of contents (desktop sticky nav, mobile dropdown select)
+ * - Collapsible sections for better readability
+ * - Last updated date
+ * - Contact information for privacy inquiries (privacy@playlink.example)
+ *
+ * @component
+ * @returns {JSX.Element} Privacy policy page with table of contents
+ */
 const PrivacyPolicy = () => (
   <MainLayout>
     <div className="max-w-6xl mx-auto py-12 px-4 sm:px-6 lg:px-8">

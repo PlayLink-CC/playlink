@@ -1,3 +1,9 @@
+/**
+ * @file Home.jsx
+ * @description Home page of PlayLink application.
+ * Displays hero section, sports filter, and trending venues fetched from the backend.
+ */
+
 import { MapPin, Check, Activity } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -5,6 +11,24 @@ import axios from "axios";
 import SearchForm from "../components/SearchForm.jsx";
 import SportsFilter from "../components/SportsFilter.jsx";
 
+/**
+ * Home Component - Landing page
+ * Features:
+ * - Hero section with search form
+ * - Sports filter display
+ * - Trending venues section fetched from backend API
+ * - Venue cards showing:
+ *   - Venue image with hover zoom effect
+ *   - Venue name and location
+ *   - Price per hour
+ *   - Available facilities/amenities
+ *   - Book Now button
+ *
+ * Uses axios to fetch trending venues from the API (http://localhost:3000/api/venues/top-weekly).
+ *
+ * @component
+ * @returns {JSX.Element} Home page with search, filters, and trending venues
+ */
 const Home = () => {
   const [venues, setVenues] = useState([]);
 

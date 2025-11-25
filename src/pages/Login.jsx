@@ -1,7 +1,29 @@
+/**
+ * @file Login.jsx
+ * @description User login page for PlayLink.
+ * Provides email/password authentication interface.
+ * Authenticates users and redirects to home page on successful login.
+ */
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
 
+/**
+ * SignInPage Component - User login interface
+ * Features:
+ * - Email input field
+ * - Password input field
+ * - Form validation (both fields required)
+ * - Error alerts for validation and API errors
+ * - Link to Sign Up page
+ * - POST request to backend login API (http://localhost:3000/api/users/login)
+ * - Credentials-based authentication with HTTP-only cookies
+ * - Navigation to home page on successful login
+ *
+ * @component
+ * @returns {JSX.Element} Login form with email and password inputs
+ */
 export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

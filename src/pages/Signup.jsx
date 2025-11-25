@@ -1,6 +1,31 @@
+/**
+ * @file Signup.jsx
+ * @description User registration page for PlayLink.
+ * Provides account creation interface with comprehensive form validation.
+ */
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
+/**
+ * SignUpPage Component - User registration interface
+ * Features:
+ * - Full Name input
+ * - Email address input
+ * - Password input with 8-character minimum
+ * - Confirm Password validation
+ * - Terms & Conditions checkbox (required)
+ * - Comprehensive form validation:
+ *   - Required field checks
+ *   - Password match verification
+ *   - Password length validation (minimum 8 characters)
+ *   - Terms agreement requirement
+ * - Error message display
+ * - Link to login page
+ *
+ * @component
+ * @returns {JSX.Element} Registration form with validation
+ */
 const SignUpPage = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");

@@ -1,7 +1,32 @@
+/**
+ * @file SearchForm.jsx
+ * @description Search form component for finding sports venues.
+ * Allows users to search for venues by sport type and handles search results.
+ * Includes error handling and loading states.
+ */
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+/**
+ * SearchForm Component - Venue search interface
+ * Features:
+ * - Text input for sport search
+ * - Location search input
+ * - Search and Clear buttons
+ * - Error handling with user feedback
+ * - Loading state management
+ * - Axios integration with backend API (http://localhost:3000/api/venues)
+ * - Optional callback or navigation to results
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {Function} [props.onSearch] - Optional callback when search results are received
+ * @param {Function} [props.navigate] - Optional custom navigation function
+ * @param {string} [props.initialSearchText] - Pre-filled search text
+ * @returns {JSX.Element} Search form with error display
+ */
 const SearchForm = ({
   onSearch,
   navigate: propNavigate,

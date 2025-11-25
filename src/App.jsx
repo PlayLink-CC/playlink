@@ -1,3 +1,10 @@
+/**
+ * @file App.jsx
+ * @description Main application component that sets up routing for the PlayLink application.
+ * Defines all routes including authentication pages, main content pages, and legal pages.
+ * Uses React Router for client-side navigation.
+ */
+
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
@@ -13,6 +20,16 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CreateBooking from "./pages/CreateBooking";
 
+/**
+ * App Component - Main application router
+ * Organizes all routes into logical groups:
+ * - Authentication routes (Login, SignUp)
+ * - Legal pages (Terms & Conditions, Privacy Policy)
+ * - Protected routes with MainLayout (Home, Venues, Bookings, Create Booking)
+ * - 404 fallback route
+ *
+ * @returns {JSX.Element} The routing structure of the application
+ */
 const App = () => {
   return (
     <BrowserRouter>
