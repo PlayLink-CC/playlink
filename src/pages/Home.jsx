@@ -11,6 +11,8 @@ import axios from "axios";
 import SearchForm from "../components/SearchForm.jsx";
 import SportsFilter from "../components/SportsFilter.jsx";
 
+import { useNavigate } from "react-router-dom";
+
 /**
  * Home Component - Landing page
  * Features:
@@ -29,6 +31,13 @@ import SportsFilter from "../components/SportsFilter.jsx";
  * @component
  * @returns {JSX.Element} Home page with search, filters, and trending venues
  */
+
+const navigate = useNavigate();
+
+const handleBookNow = (venue) => {
+  navigate("/create-booking", { state: { venue } });
+};
+
 const Home = () => {
   const [venues, setVenues] = useState([]);
 
@@ -47,6 +56,8 @@ const Home = () => {
   useEffect(() => {
     fetchVenues();
   }, []);
+
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
