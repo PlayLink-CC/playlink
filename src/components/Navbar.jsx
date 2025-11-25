@@ -52,21 +52,13 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
+
             <Link
-              to="/terms-and-conditions"
-              className="text-white hover:text-green-400 transition"
+              to="/login"
+              className="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 rounded-lg transition"
             >
-              Terms & Conditions
-            </Link>
-            <Link
-              to="/privacy-policy"
-              className="text-white hover:text-green-400 transition"
-            >
-              Privacy Policy
-            </Link>
-            <button className="bg-green-500 hover:bg-green-600 text-white px-4 lg:px-6 py-2 rounded-lg transition">
               Sign In
-            </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -110,6 +102,7 @@ const Navbar = () => {
             >
               Home
             </Link>
+
             <Link
               to="/venues"
               onClick={toggleMenu}
@@ -117,6 +110,7 @@ const Navbar = () => {
             >
               Venues
             </Link>
+
             <Link
               to="/booking-summary"
               onClick={toggleMenu}
@@ -124,23 +118,14 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
+
             <Link
-              to="/terms-and-conditions"
+              to="/login"
               onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
+              className="block w-full text-center bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition"
             >
-              Terms & Conditions
-            </Link>
-            <Link
-              to="/privacy-policy"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              Privacy Policy
-            </Link>
-            <button className="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition">
               Sign In
-            </button>
+            </Link>
           </div>
         )}
       </div>
