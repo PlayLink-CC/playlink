@@ -8,6 +8,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext"; 
 
 /**
  * SignInPage Component - User login interface
@@ -29,6 +30,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
+  const { fetchCurrentUser } = useAuth();  
 
   const handleSubmit = async () => {
     console.log("Sign in attempted with:", { email, password });
@@ -57,6 +59,8 @@ export default function SignInPage() {
       }
 
       console.log("Login successful:", data);
+
+      await fetchCurrentUser(); // To Refresh AuthContext user state
 
       navigate("/");
 
