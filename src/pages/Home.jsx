@@ -75,7 +75,12 @@ const Home = () => {
         </div>
       </div>
 
-      <SportsFilter />
+      <SportsFilter
+        onSportToggle={(sportNameOrNull) => {
+          // Navigate to Venues page and activate the selected sport filter
+          navigate("/venues", { state: { filters: { sport: sportNameOrNull } } });
+        }}
+      />
 
       {/* Trending Venues */}
       <div className="max-w-7xl mx-auto px-4 py-16">

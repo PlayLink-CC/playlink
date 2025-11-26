@@ -62,23 +62,35 @@ const Venue = () => {
     );
   };
 
-  // Initial load (no sport filter)
+  // Initial load (supports incoming filters from navigation state)
   useEffect(() => {
     const fetchAll = async () => {
       try {
         setLoading(true);
-        const res = await axios.get("http://localhost:3000/api/venues");
-        const data = res.data || [];
-        setBaseVenues(data);
 
         // Pick up filters if we navigated from Home
         const initialName = location.state?.filters?.name || "";
         const initialLocation = location.state?.filters?.location || "";
+        const initialSport = location.state?.filters?.sport || null;
+
+        // If a sport was provided, fetch using backend search for that sport
+        let res;
+        if (initialSport) {
+          res = await axios.get("http://localhost:3000/api/venues", {
+            params: { search: initialSport },
+          });
+        } else {
+          res = await axios.get("http://localhost:3000/api/venues");
+        }
+
+        const data = res.data || [];
+        setBaseVenues(data);
 
         setFilters((prev) => ({
           ...prev,
           name: initialName,
           location: initialLocation,
+          sport: initialSport,
         }));
 
         applyTextFilters(data, initialName, initialLocation);
