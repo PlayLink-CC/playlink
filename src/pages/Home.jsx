@@ -51,6 +51,12 @@ const Home = () => {
     fetchVenues();
   }, []);
 
+  const navigate = useNavigate();
+
+  const handleBookNow = (venue) => {
+    navigate("/create-booking", { state: { venue } });
+  };
+
   
 
   return (
@@ -148,7 +154,7 @@ const Home = () => {
                   </div>
                 </div>
 
-                <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer">
+                <button onClick={() => handleBookNow(venue)} className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer">
                   Book Now
                 </button>
               </div>
