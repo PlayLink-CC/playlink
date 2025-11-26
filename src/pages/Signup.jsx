@@ -6,6 +6,7 @@
 
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const SignUpPage = () => {
   const [fullName, setFullName] = useState("");
@@ -20,43 +21,42 @@ const SignUpPage = () => {
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
+    // clear any previous inline error
     setError("");
 
-    // Frontend validations (same as before)
+    // Frontend validations (show toast notifications on invalid input)
     if (!fullName.trim()) {
-      setError("Please enter your full name.");
+      toast.error("Please enter your full name.");
       return;
     }
 
     if (!email.trim()) {
-      setError("Please enter your email address.");
+      toast.error("Please enter your email address.");
       return;
     }
 
     if (!password.trim()) {
-      setError("Please enter a password.");
+      toast.error("Please enter a password.");
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      toast.error("Password must be at least 8 characters long.");
       return;
     }
 
     if (!confirmPassword.trim()) {
-      setError("Please confirm your password.");
+      toast.error("Please confirm your password.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match. Please try again.");
+      toast.error("Passwords do not match. Please try again.");
       return;
     }
 
     if (!agreeTerms) {
-      setError(
-        "You must agree to the Terms of Service and Privacy Policy to continue."
-      );
+      toast.error("You must agree to the Terms of Service and Privacy Policy to continue.");
       return;
     }
 
@@ -87,16 +87,17 @@ const SignUpPage = () => {
       console.log("Register response:", res.status, data);
 
       if (!res.ok) {
-        setError(data.message || "Registration failed. Please try again.");
+        toast.error(data.message || "Registration failed. Please try again.");
         return;
       }
 
       // At this point user is created (and backend also sets cookie).
-      // To keep the flow simple, send them to login page:
+      // Notify success and send them to login page:
       navigate("/login");
+      toast.success("Account created successfully. Please sign in.");
     } catch (err) {
       console.error("Registration error:", err);
-      setError("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }

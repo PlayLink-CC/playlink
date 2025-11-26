@@ -51,6 +51,12 @@ const Home = () => {
     fetchVenues();
   }, []);
 
+  const navigate = useNavigate();
+
+  const handleBookNow = (venue) => {
+    navigate("/create-booking", { state: { venue } });
+  };
+
   
 
   return (
@@ -69,7 +75,12 @@ const Home = () => {
         </div>
       </div>
 
-      <SportsFilter />
+      <SportsFilter
+        onSportToggle={(sportNameOrNull) => {
+          // Navigate to Venues page and activate the selected sport filter
+          navigate("/venues", { state: { filters: { sport: sportNameOrNull } } });
+        }}
+      />
 
       {/* Trending Venues */}
       <div className="max-w-7xl mx-auto px-4 py-16">
@@ -148,7 +159,7 @@ const Home = () => {
                   </div>
                 </div>
 
-                <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer">
+                <button onClick={() => handleBookNow(venue)} className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer">
                   Book Now
                 </button>
               </div>
