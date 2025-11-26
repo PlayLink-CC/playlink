@@ -4,7 +4,7 @@
  * Displays hero section, sports filter, and trending venues fetched from the backend.
  */
 
-import { MapPin, Check, Activity } from "lucide-react";
+import { MapPin, Check, Activity, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -77,8 +77,19 @@ const Home = () => {
           Trending Venues
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {venues.map((venue) => (
+        {venues.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4">
+            <AlertCircle size={64} className="text-gray-400 mb-4" />
+            <h3 className="text-2xl font-semibold text-gray-600 mb-2">
+              No Available Locations
+            </h3>
+            <p className="text-gray-500 text-center max-w-md">
+              We don't have any venues available at the moment. Please check back soon!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {venues.map((venue) => (
             <div
               key={venue.venue_id}
               className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden"
@@ -142,8 +153,9 @@ const Home = () => {
                 </button>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
