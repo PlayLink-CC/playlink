@@ -29,6 +29,29 @@ const CreateBooking = () => {
     }
   }, [venue, navigate]);
 
+  // Today's date string for date min attribute
+  const today = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const todayString = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(
+    today.getDate()
+  )}`;
+
+  // Compute minTime (next 15-min slot) if booking for today
+  let minTime = null;
+  if (selectedDate === todayString) {
+    const now = new Date();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    const rounded = Math.ceil(minutes / 15) * 15;
+    const hh = Math.floor(rounded / 60);
+    const mm = rounded % 60;
+    // If rounded is beyond closing (>= 22:00) keep minTime at 22:00 (no options)
+    if (rounded >= 22 * 60) {
+      minTime = "22:00";
+    } else {
+      minTime = `${pad(hh)}:${pad(mm)}`;
+    }
+  }
+
   // Fetch booked slots when date changes
   useEffect(() => {
     const fetchBookedSlots = async () => {
@@ -60,8 +83,31 @@ const CreateBooking = () => {
   // Validate time and duration whenever they change
   useEffect(() => {
     if (selectedTime && hours) {
+      // Prevent booking in the past: if selectedDate is today, ensure selected time > now
+      if (selectedDate) {
+        const selectedStart = new Date(`${selectedDate}T${selectedTime}:00`);
+        const now = new Date();
+        if (selectedStart.getTime() <= now.getTime()) {
+          setTimeValidationError("Bookings must be in the future");
+          return;
+        }
+      }
+      // Compute maximum allowed duration based on selected start time
+      const [sh, sm] = selectedTime.split(":").map(Number);
+      const startTotal = sh * 60 + sm;
+      const minutesUntilClose = 22 * 60 - startTotal; // until 22:00
+      const maxDurFromTime = Math.floor(minutesUntilClose / 60);
+      const maxAllowed = Math.min(4, Math.max(0, maxDurFromTime));
+
+      if (Number(hours) > maxAllowed && maxAllowed >= 1) {
+        setHours(maxAllowed);
+        setTimeValidationError(
+          `Duration adjusted to ${maxAllowed} hour${maxAllowed !== 1 ? "s" : ""} — venue closes at 10:00 PM`
+        );
+        return;
+      }
+
       // Only check if booking fits in window (end time constraint)
-      // Interval and start time are now enforced by dropdown
       if (!doesBookingFitInWindow(selectedTime, parseInt(hours))) {
         setTimeValidationError("Booking must end by 10:00 PM");
       } else {
@@ -210,6 +256,7 @@ const CreateBooking = () => {
                 <input
                   type="date"
                   value={selectedDate}
+                  min={todayString}
                   onChange={(e) => setSelectedDate(e.target.value)}
                   className="w-full outline-none text-sm"
                 />
@@ -223,6 +270,7 @@ const CreateBooking = () => {
               <TimeInput
                 value={selectedTime}
                 onChange={(e) => setSelectedTime(e)}
+                minTime={minTime}
                 placeholder="Select time"
               />
             </label>
@@ -231,14 +279,42 @@ const CreateBooking = () => {
             <span className="block text-sm font-medium text-gray-700 mb-1">
               Duration (hours)
             </span>
-            <input
-              type="number"
-              min="1"
-              max="6"
-              value={hours}
-              onChange={(e) => setHours(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm"
-            />
+            <div>
+              {/* Non-editable select to prevent manual input */}
+              <select
+                value={hours}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  if (Number.isNaN(v)) return;
+                  if (v > 4) {
+                    setHours(4);
+                    setTimeValidationError("Max allowed is 4 hours");
+                  } else {
+                    setHours(v);
+                    setTimeValidationError("");
+                  }
+                }}
+                className="w-full border rounded-lg px-3 py-2 text-sm"
+              >
+                {/* Render 1..4 but disable options that would exceed closing time when a start is selected */}
+                {[1, 2, 3, 4].map((opt) => {
+                  let disabled = false;
+                  if (selectedTime) {
+                    const [sh, sm] = selectedTime.split(":").map(Number);
+                    const startTotal = sh * 60 + sm;
+                    const minutesUntilClose = 22 * 60 - startTotal;
+                    const maxDurFromTime = Math.floor(minutesUntilClose / 60);
+                    const maxAllowed = Math.min(4, Math.max(0, maxDurFromTime));
+                    if (opt > maxAllowed) disabled = true;
+                  }
+                  return (
+                    <option key={opt} value={opt} disabled={disabled}>
+                      {opt}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </label>
 
           {/* Time Validation Error */}
