@@ -1,5 +1,6 @@
 // src/pages/Login.jsx
 import React, { useState } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -15,7 +16,7 @@ export default function SignInPage() {
     console.log("Sign in attempted with:", { email, password });
 
     if (!email || !password) {
-      alert("Please enter email and password");
+      toast.error("Please enter email and password");
       return;
     }
 
@@ -24,10 +25,10 @@ export default function SignInPage() {
       console.log("Login successful:", user);
 
       navigate("/");
-      alert("Logged in!");
+      toast.success("Successfully logged in");
     } catch (err) {
       console.error(err);
-      alert(err.message || "Login failed");
+      toast.error(err.message || "Login failed");
     }
   };
 
