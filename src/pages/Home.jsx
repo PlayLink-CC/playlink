@@ -4,11 +4,10 @@
  * Displays hero section, sports filter, and trending venues fetched from the backend.
  */
 
-import { MapPin, Check, Activity, AlertCircle } from "lucide-react";
+import { MapPin, Check, Activity, AlertCircle, Star, Users, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-import SearchForm from "../components/SearchForm.jsx";
 import SportsFilter from "../components/SportsFilter.jsx";
 
 import { useNavigate } from "react-router-dom";
@@ -62,16 +61,58 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-linear-to-b from-white to-gray-50 py-16 px-4">
+      <div className="bg-gradient-to-b from-green-50 to-white py-24 px-4">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
             Book Sports Courts Instantly
           </h1>
-          <p className="text-gray-600 text-lg mb-8">
+          <p className="text-gray-600 text-xl mb-12 max-w-2xl mx-auto">
             Find and book your perfect court in seconds
           </p>
 
-          <SearchForm />
+          {/* Hero Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 mb-8">
+            <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-3xl font-bold text-green-600 mb-2">500+</div>
+              <p className="text-gray-600 text-sm">Active Venues</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-3xl font-bold text-green-600 mb-2">10K+</div>
+              <p className="text-gray-600 text-sm">Happy Users</p>
+            </div>
+            <div className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition">
+              <div className="text-3xl font-bold text-green-600 mb-2">50K+</div>
+              <p className="text-gray-600 text-sm">Bookings Made</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Why PlayLink Section */}
+      <div className="max-w-7xl mx-auto px-4 py-16">
+        <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">Why Choose PlayLink?</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="text-center">
+            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock size={32} className="text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Instant Booking</h3>
+            <p className="text-gray-600">Reserve your court in just a few clicks. No waiting, no hassle.</p>
+          </div>
+          <div className="text-center">
+            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users size={32} className="text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Great Community</h3>
+            <p className="text-gray-600">Connect with sports enthusiasts and find your next playing partner.</p>
+          </div>
+          <div className="text-center">
+            <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Star size={32} className="text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Premium Venues</h3>
+            <p className="text-gray-600">Access to the best quality courts with top-notch facilities.</p>
+          </div>
         </div>
       </div>
 
@@ -167,6 +208,56 @@ const Home = () => {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Testimonials Section */}
+      <div className="bg-white py-16 px-4 mt-8">
+        <div className="max-w-7xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">What Users Say</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+              <div className="flex items-center mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={18} className="text-yellow-400 fill-yellow-400" />
+                ))}
+              </div>
+              <p className="text-gray-700 mb-4">"Amazing platform! Found the perfect court for my weekly badminton game. Highly recommended!"</p>
+              <p className="font-semibold text-gray-900">— Sarah M.</p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+              <div className="flex items-center mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={18} className="text-yellow-400 fill-yellow-400" />
+                ))}
+              </div>
+              <p className="text-gray-700 mb-4">"The booking process is so simple and the venues are premium quality. Love it!"</p>
+              <p className="font-semibold text-gray-900">— John D.</p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-6 border border-green-200">
+              <div className="flex items-center mb-3">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={18} className="text-yellow-400 fill-yellow-400" />
+                ))}
+              </div>
+              <p className="text-gray-700 mb-4">"Perfect for finding basketball courts nearby. Great prices and instant confirmation!"</p>
+              <p className="font-semibold text-gray-900">— Michael T.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="bg-gradient-to-r from-green-500 to-green-600 py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl font-bold text-white mb-4">Ready to Play?</h2>
+          <p className="text-green-50 text-lg mb-8">Start booking your favorite sports court today and enjoy an amazing experience.</p>
+          <button 
+            onClick={() => navigate("/venues")}
+            className="bg-white text-green-600 hover:bg-gray-100 font-semibold py-3 px-8 rounded-lg transition shadow-lg"
+          >
+            Explore Venues
+          </button>
+        </div>
       </div>
     </div>
   );
