@@ -271,11 +271,13 @@ const Venue = () => {
                     </span>
                   </div>
 
-                  {/* Sport label (still generic until backend exposes sports) */}
-                  <div className="flex items-center text-gray-600 mb-3">
-                    <Activity size={16} className="mr-1" />
-                    <span className="text-sm">Sport Court</span>
-                  </div>
+                  {/* Sports */}
+                  {venue.court_types && (
+                    <div className="flex items-center text-gray-600 mb-3">
+                      <Activity size={16} className="mr-1" />
+                      <span className="text-sm">{venue.court_types}</span>
+                    </div>
+                  )}
 
                   {/* Price */}
                   <div className="flex items-center text-green-600 font-bold mb-4">
@@ -284,6 +286,15 @@ const Venue = () => {
                       {venue.price_per_hour}/hour
                     </span>
                   </div>
+
+                  {/* Description */}
+                  {venue.description && (
+                    <div className="mb-4">
+                      <p className="text-sm text-gray-700">
+                        {venue.description}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Amenities */}
                   {venue.amenities && (

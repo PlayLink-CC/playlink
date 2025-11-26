@@ -1,8 +1,10 @@
 // src/pages/CreateBooking.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MapPin, Clock, DollarSign, Calendar, AlertCircle } from "lucide-react";
+import { MapPin, DollarSign, Calendar, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import TimeInput from "../components/TimeInput.jsx";
+import { doesBookingFitInWindow } from "../utils/timeUtil.js";
 
 const CreateBooking = () => {
   const { user, isAuthenticated } = useAuth();
@@ -18,6 +20,7 @@ const CreateBooking = () => {
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotError, setSlotError] = useState("");
+  const [timeValidationError, setTimeValidationError] = useState("");
 
   useEffect(() => {
     if (!venue) {
@@ -54,6 +57,21 @@ const CreateBooking = () => {
     fetchBookedSlots();
   }, [selectedDate, venue]);
 
+  // Validate time and duration whenever they change
+  useEffect(() => {
+    if (selectedTime && hours) {
+      // Only check if booking fits in window (end time constraint)
+      // Interval and start time are now enforced by dropdown
+      if (!doesBookingFitInWindow(selectedTime, parseInt(hours))) {
+        setTimeValidationError("Booking must end by 10:00 PM");
+      } else {
+        setTimeValidationError("");
+      }
+    } else {
+      setTimeValidationError("");
+    }
+  }, [selectedTime, hours]);
+
   if (!venue) return null;
 
   const totalPrice =
@@ -89,6 +107,12 @@ const CreateBooking = () => {
 
     if (!selectedDate || !selectedTime || !hours) {
       alert("Please select date, time and duration");
+      return;
+    }
+
+    // Only check if booking exceeds end window
+    if (timeValidationError) {
+      alert(timeValidationError);
       return;
     }
 
@@ -154,10 +178,22 @@ const CreateBooking = () => {
                 <span>{venue.location}</span>
               </div>
 
-              <div className="flex items-center text-green-600 font-semibold mb-2">
+              {venue.court_types && (
+                <div className="flex items-center text-gray-600 mb-2">
+                  <span className="text-sm">{venue.court_types}</span>
+                </div>
+              )}
+
+              <div className="flex items-center text-green-600 font-semibold mb-4">
                 <DollarSign size={18} className="mr-1" />
                 <span> LKR {venue.price_per_hour}/hour</span>
               </div>
+
+              {venue.description && (
+                <div className="text-sm text-gray-700 mb-4 p-3 bg-gray-50 rounded-lg">
+                  <p>{venue.description}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -184,16 +220,12 @@ const CreateBooking = () => {
               <span className="block text-sm font-medium text-gray-700 mb-1">
                 Start time
               </span>
-              <div className="flex items-center border rounded-lg px-3 py-2">
-                <Clock size={18} className="mr-2 text-gray-500" />
-                <input
-                  type="time"
-                  value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  className="w-full outline-none text-sm"
-                />
-            </div>
-          </label>
+              <TimeInput
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e)}
+                placeholder="Select time"
+              />
+            </label>
 
           <label className="block mb-6">
             <span className="block text-sm font-medium text-gray-700 mb-1">
@@ -208,6 +240,19 @@ const CreateBooking = () => {
               className="w-full border rounded-lg px-3 py-2 text-sm"
             />
           </label>
+
+          {/* Time Validation Error */}
+          {timeValidationError && (
+            <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3">
+              <AlertCircle size={18} className="text-orange-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-orange-900">Invalid Time</p>
+                <p className="text-xs text-orange-700 mt-1">
+                  {timeValidationError}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Conflict Warning */}
           {hasConflict && (
@@ -235,7 +280,7 @@ const CreateBooking = () => {
 
           <button
             onClick={handleCheckout}
-            disabled={loading || hasConflict}
+            disabled={loading || hasConflict || !!timeValidationError}
             className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white font-semibold py-3 rounded-lg transition"
           >
             {loading ? "Redirecting to payment..." : "Proceed to payment"}
