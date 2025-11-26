@@ -15,8 +15,6 @@ export const AuthProvider = ({ children }) => {
   // Check if there is a valid session cookie and load current user
   const fetchCurrentUser = async () => {
     try {
-      console.log("Fetching current user...");
-      console.log("Cookies:", document.cookie);
       const res = await fetch(
         "http://localhost:3000/api/users/authenticate",
         {
@@ -26,14 +24,12 @@ export const AuthProvider = ({ children }) => {
       );
 
       if (!res.ok) {
-        console.log("No valid session cookie");
         setUser(null);
         return;
       }
 
       const data = await res.json();
       // data.user is the payload from the token: { id, email, accountType }
-      console.log("User authenticated:", data.user);
       setUser(data.user);
     } catch (err) {
       console.error("Error fetching current user", err);
@@ -50,7 +46,6 @@ export const AuthProvider = ({ children }) => {
 
   // Login – call backend and store user in context
   const login = async (email, password) => {
-    console.log("Attempting login...");
     const res = await fetch("http://localhost:3000/api/users/login", {
       method: "POST",
       credentials: "include",
@@ -65,8 +60,6 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Backend returns full user object: { id, fullName, email, ... }
-    console.log("Login successful, setting user:", data);
-    console.log("Cookies after login:", document.cookie);
     setUser({
       id: data.id,
       email: data.email,
@@ -80,14 +73,10 @@ export const AuthProvider = ({ children }) => {
   // Logout – optional backend call + clear local auth state
   const logout = async () => {
     try {
-      console.log("Logging out...");
-      console.log("Cookies before logout:", document.cookie);
       await fetch("http://localhost:3000/api/users/logout", {
         method: "POST",
         credentials: "include",
       });
-      console.log("Logout request completed");
-      console.log("Cookies after logout:", document.cookie);
     } catch (err) {
       console.error("Logout request failed (front-end will still clear user)", err);
     } finally {
