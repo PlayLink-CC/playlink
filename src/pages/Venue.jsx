@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MapPin, Check, Activity } from "lucide-react";
+import { MapPin, Check, Activity, AlertCircle, Search } from "lucide-react";
 import axios from "axios";
 
 import SearchForm from "../components/SearchForm";
@@ -180,17 +180,25 @@ const Venue = () => {
         )}
 
         {!loading && searchPerformed && venues.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">
-              No venues found. Try changing your filters.
+          <div className="flex flex-col items-center justify-center py-20 px-4">
+            <Search size={64} className="text-gray-400 mb-4" />
+            <h3 className="text-2xl font-semibold text-gray-600 mb-2">
+              No Venues Found
+            </h3>
+            <p className="text-gray-500 text-center max-w-md">
+              No venues match your filters. Try changing your search criteria or clearing some filters.
             </p>
           </div>
         )}
 
         {!loading && !searchPerformed && venues.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">
-              No venues are available yet.
+          <div className="flex flex-col items-center justify-center py-20 px-4">
+            <AlertCircle size={64} className="text-gray-400 mb-4" />
+            <h3 className="text-2xl font-semibold text-gray-600 mb-2">
+              No Available Locations
+            </h3>
+            <p className="text-gray-500 text-center max-w-md">
+              We don't have any venues available at the moment. Please check back soon!
             </p>
           </div>
         )}
