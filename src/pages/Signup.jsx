@@ -11,6 +11,7 @@ import { toast } from "sonner";
 const SignUpPage = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [isVenueOwner, setIsVenueOwner] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -76,9 +77,7 @@ const SignUpPage = () => {
             fullName,
             email,
             password,
-            // you can add phone/accountType later if needed:
-            // phone,
-            // accountType: "PLAYER",
+            accountType: isVenueOwner ? "VENUE_OWNER" : "USER",
           }),
         }
       );
@@ -206,60 +205,78 @@ const SignUpPage = () => {
               </p>
             </div>
 
-            {/* Terms and Conditions */}
-            <div className="mb-4">
-              <label className="flex items-start gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="w-4 h-4 mt-0.5 text-green-500 border-gray-300 rounded focus:ring-green-500"
-                />
-                <span className="text-sm text-gray-700">
-                  I agree to the{" "}
-                  <Link
-                    to="/terms-and-conditions"
-                    className="text-green-500 hover:text-green-600 transition"
-                  >
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link
-                    to="/privacy-policy"
-                    className="text-green-500 hover:text-green-600 transition"
-                  >
-                    Privacy Policy
-                  </Link>
-                  . I understand that my information will be processed according
-                  to these terms.
-                </span>
-              </label>
-            </div>
+          </div>
 
-            {/* Submit Button */}
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className={`w-full font-medium py-3 rounded-lg transition shadow-sm ${
-                isSubmitting
-                  ? "bg-green-300 cursor-not-allowed"
-                  : "bg-green-500 hover:bg-green-600 text-white"
-              }`}
-            >
-              {isSubmitting ? "Creating account..." : "Create Account"}
-            </button>
-
-            {/* Sign In Link */}
-            <p className="text-center text-sm text-gray-600 mt-6">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="text-green-500 hover:text-green-600 font-medium transition"
-              >
-                Sign in
-              </Link>
+          {/* Venue Owner Checkbox */}
+          <div className="mb-4">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isVenueOwner}
+                onChange={(e) => setIsVenueOwner(e.target.checked)}
+                className="w-4 h-4 mt-0.5 text-green-500 border-gray-300 rounded focus:ring-green-500"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                I am a Venue Owner
+              </span>
+            </label>
+            <p className="text-xs text-gray-500 mt-1 ml-6">
+              Check this if you plan to list and manage your own sports venues.
             </p>
           </div>
+
+          {/* Terms and Conditions */}
+          <div className="mb-4">
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="w-4 h-4 mt-0.5 text-green-500 border-gray-300 rounded focus:ring-green-500"
+              />
+              <span className="text-sm text-gray-700">
+                I agree to the{" "}
+                <Link
+                  to="/terms-and-conditions"
+                  className="text-green-500 hover:text-green-600 transition"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  to="/privacy-policy"
+                  className="text-green-500 hover:text-green-600 transition"
+                >
+                  Privacy Policy
+                </Link>
+                . I understand that my information will be processed according
+                to these terms.
+              </span>
+            </label>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className={`w-full font-medium py-3 rounded-lg transition shadow-sm ${isSubmitting
+              ? "bg-green-300 cursor-not-allowed"
+              : "bg-green-500 hover:bg-green-600 text-white"
+              }`}
+          >
+            {isSubmitting ? "Creating account..." : "Create Account"}
+          </button>
+
+          {/* Sign In Link */}
+          <p className="text-center text-sm text-gray-600 mt-6">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-green-500 hover:text-green-600 font-medium transition"
+            >
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
     </div>
