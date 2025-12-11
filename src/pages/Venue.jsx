@@ -220,7 +220,8 @@ const Venue = () => {
             {venues.map((venue) => (
               <div
                 key={venue.venue_id}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden"
+                onClick={() => handleBookNow(venue)}
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden cursor-pointer"
               >
                 <div className="relative h-48 overflow-hidden">
                   <img
