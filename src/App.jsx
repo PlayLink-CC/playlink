@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CreateBooking from "./pages/CreateBooking";
+import VenueDashboard from "./pages/VenueDashboard";
 
 /**
  * App Component - Main application router
@@ -48,6 +49,7 @@ const App = () => {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/venues" element={<Venue />} />
+          <Route path="/venue-dashboard" element={<VenueDashboard />} />
           <Route path="/booking-summary" element={<BookingSummary />} />
           <Route path="/create-booking" element={<CreateBooking />} />
         </Route>

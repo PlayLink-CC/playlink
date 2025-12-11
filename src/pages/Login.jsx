@@ -24,7 +24,12 @@ export default function SignInPage() {
       const user = await login(email, password);
       console.log("Login successful:", user);
 
-      navigate("/");
+      if (user.accountType === "VENUE_OWNER") {
+        navigate("/venue-dashboard");
+      } else {
+        navigate("/");
+      }
+
       toast.success("Successfully logged in");
     } catch (err) {
       console.error(err);
