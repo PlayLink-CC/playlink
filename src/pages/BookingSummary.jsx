@@ -63,7 +63,7 @@ const BookingSummary = () => {
           setProcessingStripe(true);
           try {
             const res = await fetch(
-              `http://localhost:3000/api/bookings/checkout-success?session_id=${encodeURIComponent(
+              `http://16.171.20.120:3000/api/bookings/checkout-success?session_id=${encodeURIComponent(
                 sessionId
               )}`,
               { credentials: "include" }
@@ -88,7 +88,7 @@ const BookingSummary = () => {
 
         // 2) Fetch all bookings for current user
         const resMy = await fetch(
-          "http://localhost:3000/api/bookings/my",
+          "http://16.171.20.120:3000/api/bookings/my",
           { credentials: "include" }
         );
         const dataMy = await resMy.json();
