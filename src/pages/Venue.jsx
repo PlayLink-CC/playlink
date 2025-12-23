@@ -76,11 +76,11 @@ const Venue = () => {
         // If a sport was provided, fetch using backend search for that sport
         let res;
         if (initialSport) {
-          res = await axios.get("http://16.171.20.120:3000/api/venues", {
+          res = await axios.get("http://18.141.178.133:3000/api/venues", {
             params: { search: initialSport },
           });
         } else {
-          res = await axios.get("http://16.171.20.120:3000/api/venues");
+          res = await axios.get("http://18.141.178.133:3000/api/venues");
         }
 
         const data = res.data || [];
@@ -135,12 +135,12 @@ const Venue = () => {
       let res;
       if (sportNameOrNull) {
         // Use backend search for that sport
-        res = await axios.get("http://16.171.20.120:3000/api/venues", {
+        res = await axios.get("http://18.141.178.133:3000/api/venues", {
           params: { search: sportNameOrNull },
         });
       } else {
         // Clearing sport filter → fetch all venues again
-        res = await axios.get("http://16.171.20.120:3000/api/venues");
+        res = await axios.get("http://18.141.178.133:3000/api/venues");
       }
 
       const data = res.data || [];

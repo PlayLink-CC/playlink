@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const fetchCurrentUser = async () => {
     try {
       const res = await fetch(
-        "http://16.171.20.120:3000/api/users/authenticate",
+        "http://18.141.178.133:3000/api/users/authenticate",
         {
           method: "GET",
           credentials: "include",
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   // Login – call backend and store user in context
   const login = async (email, password) => {
-    const res = await fetch("http://16.171.20.120:3000/api/users/login", {
+    const res = await fetch("http://18.141.178.133:3000/api/users/login", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }) => {
   // Logout – optional backend call + clear local auth state
   const logout = async () => {
     try {
-      await fetch("http://16.171.20.120:3000/api/users/logout", {
+      await fetch("http://18.141.178.133:3000/api/users/logout", {
         method: "POST",
         credentials: "include",
       });

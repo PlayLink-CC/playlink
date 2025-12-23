@@ -25,7 +25,7 @@ import { useNavigate } from "react-router-dom";
  *   - Available facilities/amenities
  *   - Book Now button
  *
- * Uses axios to fetch trending venues from the API (http://16.171.20.120:3000/api/venues/top-weekly).
+ * Uses axios to fetch trending venues from the API (http://18.141.178.133:3000/api/venues/top-weekly).
  *
  * @component
  * @returns {JSX.Element} Home page with search, filters, and trending venues
@@ -37,7 +37,7 @@ const Home = () => {
   const fetchVenues = async () => {
     try {
       const res = await axios.get(
-        "http://16.171.20.120:3000/api/venues/top-weekly"
+        "http://18.141.178.133:3000/api/venues/top-weekly"
       );
       console.log(res.data);
       setVenues(res.data);
