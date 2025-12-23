@@ -66,7 +66,7 @@ const SignUpPage = () => {
       setIsSubmitting(true);
 
       const res = await fetch(
-        "http://16.171.20.120:3000/api/users/register",
+        "http://18.141.178.133:3000/api/users/register",
         {
           method: "POST",
           credentials: "include",
