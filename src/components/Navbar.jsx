@@ -56,6 +56,15 @@ const Navbar = () => {
               My Bookings
             </Link>
 
+            {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
+              <Link
+                to="/create-venue"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              >
+                List Your Venue
+              </Link>
+            )}
+
             {/* Profile icon + dropdown */}
             <div className="relative">
               <button
@@ -161,6 +170,15 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
+            {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
+              <Link
+                to="/create-venue"
+                onClick={toggleMenu}
+                className="block text-green-400 hover:text-green-300 transition py-2 font-medium"
+              >
+                List Your Venue
+              </Link>
+            )}
           </div>
         )}
 
