@@ -61,7 +61,7 @@ const CreateBooking = () => {
       setSlotError("");
       try {
         const res = await fetch(
-          `http://18.141.178.133:3000/api/bookings/booked-slots/${venue.venue_id}?date=${selectedDate}`
+          `${import.meta.env.VITE_API_URL}/api/bookings/booked-slots/${venue.venue_id}?date=${selectedDate}`
         );
         const data = await res.json();
         if (res.ok) {
@@ -170,7 +170,7 @@ const CreateBooking = () => {
     setLoading(true);
     try {
       const res = await fetch(
-        "http://18.141.178.133:3000/api/bookings/checkout-session",
+        `${import.meta.env.VITE_API_URL}/api/bookings/checkout-session`,
         {
           method: "POST",
           credentials: "include",
