@@ -7,6 +7,7 @@ const VenueDashboard = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState({ total_bookings: 0, total_revenue: 0, active_venues: 0 });
     const [bookings, setBookings] = useState([]);
+    const [venues, setVenues] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -26,6 +27,14 @@ const VenueDashboard = () => {
                 if (bookingsRes.ok) {
                     const data = await bookingsRes.json();
                     setBookings(data.bookings || []);
+                }
+
+                const venuesRes = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/my-venues`, {
+                    credentials: "include",
+                });
+                if (venuesRes.ok) {
+                    const data = await venuesRes.json();
+                    setVenues(data || []);
                 }
             } catch (error) {
                 console.error("Error fetching dashboard data", error);
@@ -71,6 +80,42 @@ const VenueDashboard = () => {
                         <h3 className="text-gray-500 text-sm font-medium uppercase">Active Venues</h3>
                         <p className="text-3xl font-bold text-gray-900 mt-2">{stats.active_venues}</p>
                     </div>
+                </div>
+
+
+
+                {/* Venues List */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-10">
+                    <h2 className="text-xl font-bold text-gray-900 mb-6">My Venues</h2>
+                    {venues.length === 0 ? (
+                        <p className="text-gray-500">You haven't listed any venues yet.</p>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {venues.map((venue) => (
+                                <Link to={`/venues/${venue.venue_id}`} key={venue.venue_id} className="block border rounded-xl overflow-hidden hover:shadow-md transition group">
+                                    <div className="h-40 bg-gray-200 relative">
+                                        <img
+                                            src={venue.primary_image || 'https://via.placeholder.com/400x200?text=No+Image'}
+                                            alt={venue.venue_name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                        />
+                                        <div className="absolute top-2 right-2">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${venue.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {venue.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="font-bold text-gray-900 truncate">{venue.venue_name}</h3>
+                                        <p className="text-sm text-gray-500 mb-2 truncate">{venue.city}</p>
+                                        <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-100">
+                                            <span className="font-medium text-green-600">LKR {Number(venue.price_per_hour).toLocaleString()}/hr</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Bookings List */}

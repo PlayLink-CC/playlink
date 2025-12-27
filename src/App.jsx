@@ -23,6 +23,7 @@ import CreateBooking from "./pages/CreateBooking";
 
 import VenueDashboard from "./pages/VenueDashboard";
 import CreateVenue from "./pages/CreateVenue";
+import VenueDetails from "./pages/VenueDetails";
 
 /**
  * App Component - Main application router
@@ -51,6 +52,7 @@ const App = () => {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/venues" element={<Venue />} />
+          <Route path="/venues/:id" element={<VenueDetails />} />
 
           <Route path="/venue-dashboard" element={<VenueDashboard />} />
           <Route path="/create-venue" element={<CreateVenue />} />
