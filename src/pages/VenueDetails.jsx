@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapPin, Clock, DollarSign, Shield, Activity, Calendar } from "lucide-react";
+import { MapPin, Activity, Shield } from "lucide-react";
+import TimeInput from "../components/TimeInput";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -33,7 +34,7 @@ const VenueDetails = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [editForm, setEditForm] = useState({});
-    const [blockForm, setBlockForm] = useState({ date: "", startTime: "", endTime: "" });
+    const [blockForm, setBlockForm] = useState({ date: "", startTime: "", duration: "1" });
 
     const handleEditClick = () => {
         setEditForm({
@@ -79,19 +80,37 @@ const VenueDetails = () => {
     const handleBlockSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Calculate end time based on duration
+            const [sh, sm] = blockForm.startTime.split(':').map(Number);
+            const startTotalMinutes = sh * 60 + sm;
+            const endTotalMinutes = startTotalMinutes + (Number(blockForm.duration) * 60);
+
+            const eh = Math.floor(endTotalMinutes / 60);
+            const em = endTotalMinutes % 60;
+            const endTime = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
+
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/block`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify(blockForm)
+                body: JSON.stringify({
+                    date: blockForm.date,
+                    startTime: blockForm.startTime,
+                    endTime: endTime,
+                    reason: "Manual block by owner"
+                })
             });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to block slot");
+            }
+            toast.success("Slot blocked successfully. Refreshing...");
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "Failed to block slot");
+            // Wait a moment then reload to show updated schedule
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
 
-            toast.success("Slot blocked successfully");
-            setShowBlockModal(false);
-            setBlockForm({ date: "", startTime: "", endTime: "" });
         } catch (error) {
             toast.error(error.message);
         }
@@ -308,24 +327,23 @@ const VenueDetails = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Start Time</label>
-                                        <input
-                                            type="time"
-                                            required
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                        <TimeInput
                                             value={blockForm.startTime}
-                                            onChange={e => setBlockForm({ ...blockForm, startTime: e.target.value })}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
+                                            onChange={val => setBlockForm({ ...blockForm, startTime: val })}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">End Time</label>
-                                        <input
-                                            type="time"
-                                            required
-                                            value={blockForm.endTime}
-                                            onChange={e => setBlockForm({ ...blockForm, endTime: e.target.value })}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Hours)</label>
+                                        <select
+                                            value={blockForm.duration}
+                                            onChange={e => setBlockForm({ ...blockForm, duration: e.target.value })}
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2 h-[42px]"
+                                        >
+                                            {[1, 2, 3, 4, 5, 6, 7, 8].map(h => (
+                                                <option key={h} value={h}>{h} Hour{h > 1 ? 's' : ''}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
                                 <div className="flex justify-end gap-3 mt-6">

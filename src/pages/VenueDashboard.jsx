@@ -129,45 +129,96 @@ const VenueDashboard = () => {
                             <p className="text-gray-500">No bookings yet.</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="border-b border-gray-100 text-gray-500 text-sm">
-                                        <th className="pb-3 font-medium">Venue</th>
-                                        <th className="pb-3 font-medium">Customer</th>
-                                        <th className="pb-3 font-medium">Date & Time</th>
-                                        <th className="pb-3 font-medium">Amount</th>
-                                        <th className="pb-3 font-medium">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="text-sm">
-                                    {bookings.map((booking) => (
-                                        <tr key={booking.booking_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
-                                            <td className="py-4 font-medium text-gray-900">{booking.venue_name}</td>
-                                            <td className="py-4 text-gray-600">
-                                                <div>{booking.customer_name}</div>
-                                                <div className="text-xs text-gray-400">{booking.customer_email}</div>
-                                            </td>
-                                            <td className="py-4 text-gray-600">
-                                                {new Date(booking.booking_start).toLocaleDateString()} <br />
-                                                <span className="text-xs">
-                                                    {new Date(booking.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 font-medium text-gray-900">
-                                                LKR {Number(booking.total_amount).toLocaleString()}
-                                            </td>
-                                            <td className="py-4">
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                                                    ${booking.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
-                                                        booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
-                                                    {booking.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div className="space-y-10">
+                            {/* Regular Bookings */}
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Customer Bookings</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b border-gray-100 text-gray-500 text-sm">
+                                                <th className="pb-3 font-medium">Venue</th>
+                                                <th className="pb-3 font-medium">Customer</th>
+                                                <th className="pb-3 font-medium">Date & Time</th>
+                                                <th className="pb-3 font-medium">Amount</th>
+                                                <th className="pb-3 font-medium">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-sm">
+                                            {bookings
+                                                .filter(b => b.status !== 'BLOCKED')
+                                                .map((booking) => (
+                                                    <tr key={booking.booking_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
+                                                        <td className="py-4 font-medium text-gray-900">{booking.venue_name}</td>
+                                                        <td className="py-4 text-gray-600">
+                                                            <div>{booking.customer_name}</div>
+                                                            <div className="text-xs text-gray-400">{booking.customer_email}</div>
+                                                        </td>
+                                                        <td className="py-4 text-gray-600">
+                                                            {new Date(booking.booking_start).toLocaleDateString()} <br />
+                                                            <span className="text-xs">
+                                                                {new Date(booking.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4 font-medium text-gray-900">
+                                                            LKR {Number(booking.total_amount).toLocaleString()}
+                                                        </td>
+                                                        <td className="py-4">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium 
+                                                            ${booking.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                                                                    booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                                {booking.status}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            {/* Blocked Slots */}
+                            <div className="pt-6 border-t border-gray-100">
+                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Blocked Time Slots</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b border-gray-100 text-gray-500 text-sm">
+                                                <th className="pb-3 font-medium">Venue</th>
+                                                <th className="pb-3 font-medium">Date & Time</th>
+                                                <th className="pb-3 font-medium">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="text-sm">
+                                            {bookings
+                                                .filter(b => b.status === 'BLOCKED')
+                                                .map((booking) => (
+                                                    <tr key={booking.booking_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 bg-red-50/30">
+                                                        <td className="py-4 font-medium text-gray-900">{booking.venue_name}</td>
+                                                        <td className="py-4 text-gray-600">
+                                                            {new Date(booking.booking_start).toLocaleDateString()} <br />
+                                                            <span className="text-xs">
+                                                                {new Date(booking.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                {' - '}
+                                                                {new Date(booking.booking_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-4">
+                                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                                                                BLOCKED
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            {bookings.filter(b => b.status === 'BLOCKED').length === 0 && (
+                                                <tr>
+                                                    <td colSpan="3" className="py-4 text-gray-500 text-center italic">No blocked slots</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
