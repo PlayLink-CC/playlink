@@ -308,7 +308,7 @@ const BookingSummary = () => {
                     <div className="text-green-600 font-semibold mb-1">
                       LKR{" "}
                       {Number(
-                        b.share_amount || b.total_amount
+                        b.is_initiator ? b.total_amount : (b.share_amount || b.total_amount)
                       ).toFixed(2)}
                     </div>
                     <p className="text-xs text-gray-500 mb-1">
