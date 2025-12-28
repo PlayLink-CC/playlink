@@ -111,7 +111,8 @@ const BookingSummary = () => {
           }
         }
         else if (sessionId === 'POINTS_PAYMENT') {
-          // handled via simple load
+          // handled via simple load but refresh wallet needed
+          fetchWalletBalance();
         }
 
         await loadBookings();
@@ -476,7 +477,7 @@ const BookingSummary = () => {
           <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Cancel Booking?</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to cancel your booking at <span className="font-semibold">{cancelModal.booking?.venue_name}</span>?
+              This booking will be cancelled. All participants who have already paid their share will be automatically refunded to their Playlink Wallets based on the venue's policy.
             </p>
             <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
               <div className="flex justify-between mb-1">
