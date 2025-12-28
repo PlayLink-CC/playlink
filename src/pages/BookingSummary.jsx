@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -143,17 +144,17 @@ const BookingSummary = () => {
         if (data.checkoutUrl) {
           window.location.href = data.checkoutUrl;
         } else {
-          alert("Payment successful!");
+          toast.success("Payment successful!");
           await loadBookings();
           setPayingShareId(null);
           fetchWalletBalance();
         }
       } else {
-        alert(data.message || "Payment failed");
+        toast.error(data.message || "Payment failed");
         setPayingShareId(null);
       }
     } catch (e) {
-      alert("Error processing payment");
+      toast.error("Error processing payment");
       setPayingShareId(null);
     }
   };
@@ -172,7 +173,7 @@ const BookingSummary = () => {
 
     // Check if started
     if (hoursRemaining <= 0) {
-      alert("Cannot cancel a booking that has already started.");
+      toast.error("Cannot cancel a booking that has already started.");
       return;
     }
 
@@ -195,16 +196,16 @@ const BookingSummary = () => {
       const data = await res.json();
 
       if (res.ok) {
-        alert(data.message);
+        toast.success(data.message);
         setCancelModal({ open: false, booking: null, refundAmount: 0 });
         loadBookings();
         fetchWalletBalance();
       } else {
-        alert("Failed to cancel: " + data.message);
+        toast.error("Failed to cancel: " + data.message);
       }
     } catch (e) {
       console.error(e);
-      alert("Error cancelling booking: " + e.message);
+      toast.error("Error cancelling booking: " + e.message);
     }
   };
 
@@ -240,14 +241,14 @@ const BookingSummary = () => {
       const data = await res.json();
 
       if (res.ok) {
-        alert("Booking rescheduled successfully!");
+        toast.success("Booking rescheduled successfully!");
         setRescheduleModal({ open: false, booking: null, start: "", time: "" });
         loadBookings();
       } else {
-        alert(data.message || "Failed to reschedule.");
+        toast.error(data.message || "Failed to reschedule.");
       }
     } catch (e) {
-      alert("Error rescheduling booking");
+      toast.error("Error rescheduling booking");
     }
   };
 
