@@ -314,6 +314,12 @@ const BookingSummary = () => {
                     <p className="text-xs text-gray-500 mb-1">
                       Payment: <span className={b.payment_status === 'PENDING' ? 'text-red-500 font-bold' : 'text-green-600'}>{b.payment_status}</span>
                     </p>
+                    {b.points_used > 0 && (
+                      <div className="text-xs text-gray-500 text-right mt-1">
+                        <div>Points Used: LKR {Number(b.points_used).toFixed(2)}</div>
+                        <div>Amount Paid: LKR {Number(b.paid_amount).toFixed(2)}</div>
+                      </div>
+                    )}
 
                     {isPendingShare && (
                       <div className="flex flex-col gap-2 items-end">
