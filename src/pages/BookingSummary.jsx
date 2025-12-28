@@ -168,8 +168,18 @@ const BookingSummary = () => {
     const refundPct = booking.refund_percentage || 0;
 
     let refund = 0;
-    if (hoursRemaining >= policyHours) {
-      refund = Number(booking.total_amount) * (Number(refundPct) / 100);
+
+
+    // Check if started
+    if (hoursRemaining <= 0) {
+      alert("Cannot cancel a booking that has already started.");
+      return;
+    }
+
+    if (hoursRemaining > policyHours) {
+      refund = Number(booking.total_amount); // 100%
+    } else {
+      refund = Number(booking.total_amount) * (Number(refundPct) / 100); // 90% or whatever percent
     }
 
     setCancelModal({ open: true, booking, refundAmount: refund });
@@ -469,18 +479,38 @@ const BookingSummary = () => {
             </p>
             <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
               <div className="flex justify-between mb-1">
-                <span className="text-gray-500">Refund Policy:</span>
-                <span className="font-medium text-gray-700">{cancelModal.booking?.refund_percentage || 0}%</span>
+                <span className="text-gray-500">Refund Tier:</span>
+                <span className="font-medium text-gray-700">
+                  {/* Re-calculate to show tier text */}
+                  {(() => {
+                    const now = new Date();
+                    const start = new Date(cancelModal.booking?.booking_start);
+                    const hours = (start - now) / (1000 * 60 * 60);
+                    const policyHours = cancelModal.booking?.hours_before_start || 0;
+
+                    if (hours > policyHours) return "Early Cancellation (100%)";
+                    return `Late Cancellation (${cancelModal.booking?.refund_percentage || 0}%)`;
+                  })()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Est. Refund:</span>
                 <span className="font-bold text-green-600">LKR {cancelModal.refundAmount.toFixed(2)}</span>
               </div>
-              {cancelModal.refundAmount === 0 && (
-                <p className="text-xs text-orange-600 mt-2">
-                  Note: No refund available (too close to booking time).
-                </p>
-              )}
+              <p className="text-xs text-gray-500 mt-2">
+                {(() => {
+                  const now = new Date();
+                  const start = new Date(cancelModal.booking?.booking_start);
+                  const hours = (start - now) / (1000 * 60 * 60);
+                  const policyHours = cancelModal.booking?.hours_before_start || 0;
+
+                  if (hours > policyHours) {
+                    return `You are cancelling early (> ${policyHours}h before). You will receive a 100% refund.`;
+                  } else {
+                    return `You are within the late cancellation window (<= ${policyHours}h before). You will receive a ${cancelModal.booking?.refund_percentage}% refund.`;
+                  }
+                })()}
+              </p>
             </div>
             <div className="flex justify-end gap-3">
               <button
