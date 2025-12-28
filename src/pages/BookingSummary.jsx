@@ -35,7 +35,7 @@ const formatRange = (start, end) => {
 };
 
 const BookingSummary = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, fetchWalletBalance } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -97,6 +97,8 @@ const BookingSummary = () => {
               );
             } else {
               setLatestBooking(data.booking);
+              // Refresh wallet balance
+              fetchWalletBalance();
             }
           } catch (err) {
             console.error(err);
@@ -149,8 +151,10 @@ const BookingSummary = () => {
         } else {
           // Points Success
           alert("Payment successful!");
+          alert("Payment successful!");
           await loadBookings();
           setPayingShareId(null);
+          fetchWalletBalance(); // Refresh Navbar balance
         }
       } else {
         alert(data.message || "Payment failed");

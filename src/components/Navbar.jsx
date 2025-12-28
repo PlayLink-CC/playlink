@@ -6,23 +6,12 @@ import { useAuth } from "../context/AuthContext";
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(null);
 
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, walletBalance } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleProfile = () => setIsProfileOpen((prev) => !prev);
-
-  // Fetch Wallet Balance
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      fetch(`${import.meta.env.VITE_API_URL}/api/wallet/my-balance`, { credentials: 'include' })
-        .then(res => res.json())
-        .then(data => setWalletBalance(data.balance))
-        .catch(err => console.error("Failed to load wallet balance", err));
-    }
-  }, [isAuthenticated]);
 
   const handleSignInClick = () => {
     setIsProfileOpen(false);
