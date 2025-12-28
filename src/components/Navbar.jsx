@@ -6,12 +6,23 @@ import { useAuth } from "../context/AuthContext";
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(null);
 
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleProfile = () => setIsProfileOpen((prev) => !prev);
+
+  // Fetch Wallet Balance
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      fetch(`${import.meta.env.VITE_API_URL}/api/wallet/my-balance`, { credentials: 'include' })
+        .then(res => res.json())
+        .then(data => setWalletBalance(data.balance))
+        .catch(err => console.error("Failed to load wallet balance", err));
+    }
+  }, [isAuthenticated]);
 
   const handleSignInClick = () => {
     setIsProfileOpen(false);
@@ -71,6 +82,12 @@ const Navbar = () => {
                   List Your Venue
                 </Link>
               </>
+            )}
+
+            {isAuthenticated && walletBalance !== null && (
+              <div className="text-white text-sm font-medium mr-4 bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-700">
+                {Number(walletBalance).toFixed(2)} Points
+              </div>
             )}
 
             {/* Profile icon + dropdown */}

@@ -44,9 +44,29 @@ const BookingSummary = () => {
   const [loading, setLoading] = useState(true);
   const [processingStripe, setProcessingStripe] = useState(false);
   const [error, setError] = useState("");
+  const [payingShareId, setPayingShareId] = useState(null);
 
   const sessionId = searchParams.get("session_id");
   const cancelled = searchParams.get("cancelled");
+
+  const loadBookings = async () => {
+    try {
+      const resMy = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/bookings/my`,
+        { credentials: "include" }
+      );
+      const dataMy = await resMy.json();
+
+      if (!resMy.ok) {
+        setError(dataMy.message || "Failed to load bookings");
+      } else {
+        setBookings(dataMy.bookings || []);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Unexpected error while loading bookings");
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -59,7 +79,7 @@ const BookingSummary = () => {
         setLoading(true);
 
         // 1) If we came back from Stripe with a session_id, confirm payment
-        if (sessionId && !cancelled) {
+        if (sessionId && !cancelled && sessionId !== 'POINTS_PAYMENT') {
           setProcessingStripe(true);
           try {
             const res = await fetch(
@@ -85,22 +105,16 @@ const BookingSummary = () => {
             setProcessingStripe(false);
           }
         }
-
-        // 2) Fetch all bookings for current user
-        const resMy = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/bookings/my`,
-          { credentials: "include" }
-        );
-        const dataMy = await resMy.json();
-
-        if (!resMy.ok) {
-          setError(dataMy.message || "Failed to load bookings");
-        } else {
-          setBookings(dataMy.bookings || []);
+        else if (sessionId === 'POINTS_PAYMENT') {
+          // Just show success message, booking should be there
+          // Maybe fetch latest booking by date or assume it's in list?
+          // Simplest: just load list.
         }
+
+        await loadBookings();
+
       } catch (err) {
         console.error(err);
-        setError("Unexpected error while loading bookings");
       } finally {
         setLoading(false);
       }
@@ -108,6 +122,45 @@ const BookingSummary = () => {
 
     load();
   }, [isAuthenticated, navigate, sessionId, cancelled]);
+
+  const handlePayShare = async (bookingId) => {
+    // Simple verification dialog or custom UI for choice?
+    // Let's use a browser confirm for MVP or a small state to show options.
+    // Better: use a small modal or just two buttons in the UI?
+    // Let's use window.confirm is tricky for 2 options.
+    // Let's invoke a state to show a modal.
+    setPayingShareId(bookingId);
+  };
+
+  const executePayment = async (bookingId, useWallet) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/pay-split-share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ bookingId, useWallet }) // useWallet: true/false
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        if (data.checkoutUrl) {
+          // Stripe Redirect
+          window.location.href = data.checkoutUrl;
+        } else {
+          // Points Success
+          alert("Payment successful!");
+          await loadBookings();
+          setPayingShareId(null);
+        }
+      } else {
+        alert(data.message || "Payment failed");
+        setPayingShareId(null);
+      }
+    } catch (e) {
+      alert("Error processing payment");
+      setPayingShareId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -132,6 +185,12 @@ const BookingSummary = () => {
         {cancelled && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm">
             Payment was cancelled. No new booking was confirmed.
+          </div>
+        )}
+
+        {sessionId === 'POINTS_PAYMENT' && (
+          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl text-sm">
+            <p className="font-semibold mb-1">Booking confirmed using Playlink Points! 🎉</p>
           </div>
         )}
 
@@ -195,6 +254,8 @@ const BookingSummary = () => {
                 latestBooking.booking_id === b.booking_id &&
                 !cancelled;
 
+              const isPendingShare = b.payment_status === 'PENDING' && b.is_initiator === 0;
+
               return (
                 <div
                   key={b.booking_id}
@@ -243,16 +304,50 @@ const BookingSummary = () => {
                     </div>
                   </div>
 
-                  <div className="md:text-right">
+                  <div className="md:text-right flex flex-col items-end gap-2">
                     <div className="text-green-600 font-semibold mb-1">
                       LKR{" "}
                       {Number(
                         b.share_amount || b.total_amount
                       ).toFixed(2)}
                     </div>
-                    <p className="text-xs text-gray-500">
-                      Payment: {b.payment_status}
+                    <p className="text-xs text-gray-500 mb-1">
+                      Payment: <span className={b.payment_status === 'PENDING' ? 'text-red-500 font-bold' : 'text-green-600'}>{b.payment_status}</span>
                     </p>
+
+                    {isPendingShare && (
+                      <div className="flex flex-col gap-2 items-end">
+                        {payingShareId === b.booking_id ? (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => executePayment(b.booking_id, true)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1.5 rounded-lg shadow-sm font-medium transition"
+                            >
+                              Use Points
+                            </button>
+                            <button
+                              onClick={() => executePayment(b.booking_id, false)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg shadow-sm font-medium transition"
+                            >
+                              Pay Card
+                            </button>
+                            <button
+                              onClick={() => setPayingShareId(null)}
+                              className="text-gray-500 hover:text-gray-700 text-xs px-2 py-1.5"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handlePayShare(b.booking_id)}
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg shadow-sm font-medium transition"
+                          >
+                            Pay Your Share
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
