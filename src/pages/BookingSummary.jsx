@@ -46,6 +46,10 @@ const BookingSummary = () => {
   const [error, setError] = useState("");
   const [payingShareId, setPayingShareId] = useState(null);
 
+  // Modal States
+  const [cancelModal, setCancelModal] = useState({ open: false, booking: null, refundAmount: 0 });
+  const [rescheduleModal, setRescheduleModal] = useState({ open: false, booking: null, start: "", time: "" });
+
   const sessionId = searchParams.get("session_id");
   const cancelled = searchParams.get("cancelled");
 
@@ -78,7 +82,6 @@ const BookingSummary = () => {
       try {
         setLoading(true);
 
-        // 1) If we came back from Stripe with a session_id, confirm payment
         if (sessionId && !cancelled && sessionId !== 'POINTS_PAYMENT') {
           setProcessingStripe(true);
           try {
@@ -97,7 +100,6 @@ const BookingSummary = () => {
               );
             } else {
               setLatestBooking(data.booking);
-              // Refresh wallet balance
               fetchWalletBalance();
             }
           } catch (err) {
@@ -108,9 +110,7 @@ const BookingSummary = () => {
           }
         }
         else if (sessionId === 'POINTS_PAYMENT') {
-          // Just show success message, booking should be there
-          // Maybe fetch latest booking by date or assume it's in list?
-          // Simplest: just load list.
+          // handled via simple load
         }
 
         await loadBookings();
@@ -126,11 +126,6 @@ const BookingSummary = () => {
   }, [isAuthenticated, navigate, sessionId, cancelled]);
 
   const handlePayShare = async (bookingId) => {
-    // Simple verification dialog or custom UI for choice?
-    // Let's use a browser confirm for MVP or a small state to show options.
-    // Better: use a small modal or just two buttons in the UI?
-    // Let's use window.confirm is tricky for 2 options.
-    // Let's invoke a state to show a modal.
     setPayingShareId(bookingId);
   };
 
@@ -140,21 +135,18 @@ const BookingSummary = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ bookingId, useWallet }) // useWallet: true/false
+        body: JSON.stringify({ bookingId, useWallet })
       });
       const data = await res.json();
 
       if (res.ok) {
         if (data.checkoutUrl) {
-          // Stripe Redirect
           window.location.href = data.checkoutUrl;
         } else {
-          // Points Success
-          alert("Payment successful!");
           alert("Payment successful!");
           await loadBookings();
           setPayingShareId(null);
-          fetchWalletBalance(); // Refresh Navbar balance
+          fetchWalletBalance();
         }
       } else {
         alert(data.message || "Payment failed");
@@ -163,6 +155,89 @@ const BookingSummary = () => {
     } catch (e) {
       alert("Error processing payment");
       setPayingShareId(null);
+    }
+  };
+
+  const openCancelModal = (booking) => {
+    // Calculate refund
+    const now = new Date();
+    const start = new Date(booking.booking_start);
+    const hoursRemaining = (start - now) / (1000 * 60 * 60);
+
+    const policyHours = booking.hours_before_start || 0;
+    const refundPct = booking.refund_percentage || 0;
+
+    let refund = 0;
+    if (hoursRemaining >= policyHours) {
+      refund = Number(booking.total_amount) * (Number(refundPct) / 100);
+    }
+
+    setCancelModal({ open: true, booking, refundAmount: refund });
+  };
+
+  const confirmCancel = async () => {
+    if (!cancelModal.booking) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${cancelModal.booking.booking_id}/cancel`, {
+        method: 'PATCH',
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert(data.message);
+        setCancelModal({ open: false, booking: null, refundAmount: 0 });
+        loadBookings();
+        fetchWalletBalance();
+      } else {
+        alert("Failed to cancel: " + data.message);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error cancelling booking: " + e.message);
+    }
+  };
+
+  const openRescheduleModal = (booking) => {
+    // Initial guess: just default inputs to empty or current?
+    // Let's current date/time
+    const currentStart = new Date(booking.booking_start);
+    const dateStr = currentStart.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    const timeStr = currentStart.toTimeString().substring(0, 5); // HH:MM
+
+    setRescheduleModal({ open: true, booking, start: dateStr, time: timeStr });
+  };
+
+  const confirmReschedule = async () => {
+    if (!rescheduleModal.booking) return;
+    try {
+      // Calculate hours from original booking duration
+      const start = new Date(rescheduleModal.booking.booking_start);
+      const end = new Date(rescheduleModal.booking.booking_end);
+      const durationMs = end - start;
+      const hours = durationMs / (1000 * 60 * 60);
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${rescheduleModal.booking.booking_id}/reschedule`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          date: rescheduleModal.start,
+          time: rescheduleModal.time,
+          hours: hours
+        })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("Booking rescheduled successfully!");
+        setRescheduleModal({ open: false, booking: null, start: "", time: "" });
+        loadBookings();
+      } else {
+        alert(data.message || "Failed to reschedule.");
+      }
+    } catch (e) {
+      alert("Error rescheduling booking");
     }
   };
 
@@ -178,14 +253,11 @@ const BookingSummary = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* Stripe success / error banner */}
         {cancelled && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl text-sm">
             Payment was cancelled. No new booking was confirmed.
@@ -259,12 +331,15 @@ const BookingSummary = () => {
                 !cancelled;
 
               const isPendingShare = b.payment_status === 'PENDING' && b.is_initiator === 0;
+              const isConfirmed = b.status === "CONFIRMED";
+              const isInitiator = b.is_initiator === 1;
+              const notPassed = new Date(b.booking_start) > new Date();
 
               return (
                 <div
                   key={b.booking_id}
                   className={
-                    "bg-white rounded-2xl shadow-sm border px-5 py-4 md:px-6 md:py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 " +
+                    "bg-white rounded-2xl shadow-sm border px-5 py-4 md:px-6 md:py-5 flex flex-col md:flex-row md:justify-between gap-4 " +
                     (isLatest ? "border-green-400" : "border-gray-100")
                   }
                 >
@@ -306,6 +381,24 @@ const BookingSummary = () => {
                           : "You are a participant"}
                       </p>
                     </div>
+
+                    {/* Action Buttons for Initiator */}
+                    {isConfirmed && isInitiator && notPassed && (
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => openRescheduleModal(b)}
+                          className="px-3 py-1 text-xs font-medium bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition"
+                        >
+                          Reschedule
+                        </button>
+                        <button
+                          onClick={() => openCancelModal(b)}
+                          className="px-3 py-1 text-xs font-medium bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="md:text-right flex flex-col items-end gap-2">
@@ -365,6 +458,96 @@ const BookingSummary = () => {
           </div>
         )}
       </div>
+
+      {/* Cancel Modal */}
+      {cancelModal.open && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Cancel Booking?</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to cancel your booking at <span className="font-semibold">{cancelModal.booking?.venue_name}</span>?
+            </p>
+            <div className="bg-gray-50 p-3 rounded-lg mb-4 text-sm">
+              <div className="flex justify-between mb-1">
+                <span className="text-gray-500">Refund Policy:</span>
+                <span className="font-medium text-gray-700">{cancelModal.booking?.refund_percentage || 0}%</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Est. Refund:</span>
+                <span className="font-bold text-green-600">LKR {cancelModal.refundAmount.toFixed(2)}</span>
+              </div>
+              {cancelModal.refundAmount === 0 && (
+                <p className="text-xs text-orange-600 mt-2">
+                  Note: No refund available (too close to booking time).
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setCancelModal({ open: false, booking: null, refundAmount: 0 })}
+                className="px-4 py-2 text-gray-600 text-sm font-medium hover:bg-gray-100 rounded-lg"
+              >
+                Close
+              </button>
+              <button
+                onClick={confirmCancel}
+                className="px-4 py-2 bg-red-600 text-white text-sm font-medium hover:bg-red-700 rounded-lg"
+              >
+                Confirm Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleModal.open && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Reschedule Booking</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Choose a new time for your game at <span className="font-semibold">{rescheduleModal.booking?.venue_name}</span>.
+            </p>
+
+            <div className="space-y-3 mb-6">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">New Date</label>
+                <input
+                  type="date"
+                  value={rescheduleModal.start}
+                  onChange={(e) => setRescheduleModal({ ...rescheduleModal, start: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">New Time</label>
+                <input
+                  type="time"
+                  value={rescheduleModal.time}
+                  onChange={(e) => setRescheduleModal({ ...rescheduleModal, time: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setRescheduleModal({ open: false, booking: null, start: "", time: "" })}
+                className="px-4 py-2 text-gray-600 text-sm font-medium hover:bg-gray-100 rounded-lg"
+              >
+                Close
+              </button>
+              <button
+                onClick={confirmReschedule}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 rounded-lg"
+              >
+                Reschedule
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
