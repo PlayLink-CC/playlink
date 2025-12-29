@@ -181,7 +181,7 @@ const CreateVenue = () => {
             }
 
             toast.success("Venue created successfully!");
-            navigate("/venues");
+            navigate("/venue-dashboard");
         } catch (err) {
             console.error(err);
             toast.error(err.message);

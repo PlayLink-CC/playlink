@@ -103,8 +103,8 @@ const CreateBooking = () => {
         if (res.ok) {
           // Filter out already invited users and self
           const filtered = (data.users || []).filter(u =>
-            u.user_id !== user.user_id &&
-            !invitees.find(i => i.user_id === u.user_id)
+            String(u.user_id) !== String(user.id) &&
+            !invitees.find(i => String(i.user_id) === String(u.user_id))
           );
           setSearchResults(filtered);
         }
@@ -198,6 +198,50 @@ const CreateBooking = () => {
     setInvitees(invitees.filter(i => i.user_id !== id));
   };
 
+  /* ... existing code ... */
+  const [confirmationModal, setConfirmationModal] = useState({ show: false });
+
+  const processCheckout = async () => {
+    setLoading(true);
+    setConfirmationModal({ show: false }); // Close if open
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/bookings/checkout-session`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            venueId: venue.venue_id,
+            date: selectedDate,
+            time: selectedTime,
+            hours: Number(hours),
+            invites: invitees.map(i => i.email),
+            useWallet: useWallet
+          }),
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.message || "Failed to start payment");
+        setLoading(false);
+        return;
+      }
+
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else if (data.success) {
+        navigate(`/booking-summary?session_id=POINTS_PAYMENT`);
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+      setLoading(false);
+    }
+  };
+
   const handleCheckout = async () => {
     if (!isAuthenticated) {
       navigate("/login", {
@@ -220,43 +264,10 @@ const CreateBooking = () => {
     }
     if (timeValidationError || hasConflict) return;
 
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/bookings/checkout-session`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            venueId: venue.venue_id,
-            date: selectedDate,
-            time: selectedTime,
-            hours: Number(hours),
-            invites: invitees.map(i => i.email), // Send Emails!
-            useWallet: useWallet
-          }),
-        }
-      );
-
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.message || "Failed to start payment");
-        setLoading(false);
-        return;
-      }
-
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else if (data.success) {
-        // Direct success (Points)
-        navigate(`/booking-summary?session_id=POINTS_PAYMENT`);
-      }
-
-    } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
-      setLoading(false);
+    if (useWallet) {
+      setConfirmationModal({ show: true });
+    } else {
+      processCheckout();
     }
   };
 
@@ -465,6 +476,31 @@ const CreateBooking = () => {
           </div>
         </div>
       </div>
+
+      {confirmationModal.show && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Payment</h3>
+            <p className="text-gray-600 mb-6">
+              You are about to pay using your Playlink Points balance. Are you sure you want to proceed?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setConfirmationModal({ show: false })}
+                className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={processCheckout}
+                className="px-5 py-2.5 text-white bg-green-600 hover:bg-green-700 rounded-lg font-medium shadow-md transition"
+              >
+                Yes, Pay with Points
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
