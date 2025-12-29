@@ -128,6 +128,10 @@ const CreateVenue = () => {
                 toast.error("Please enter a valid price");
                 return false;
             }
+            if (Number(formData.pricePerHour) < 1000) {
+                toast.error("Price must be at least 1000");
+                return false;
+            }
         } else if (step === 3) {
             if (formData.sportIds.length === 0) {
                 toast.error("Please select at least one sport");
@@ -267,11 +271,12 @@ const CreateVenue = () => {
                                 <label className="block text-sm font-medium text-gray-700">Price per Hour (LKR)</label>
                                 <input
                                     type="number"
+                                    min="1000"
                                     name="pricePerHour"
                                     value={formData.pricePerHour}
                                     onChange={handleChange}
                                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                    placeholder="2500"
+                                    placeholder="1000"
                                 />
                             </div>
 

@@ -49,6 +49,12 @@ const VenueDetails = () => {
 
     const handleEditSubmit = async (e) => {
         e.preventDefault();
+
+        if (Number(editForm.pricePerHour) < 1000) {
+            toast.error("Price must be at least 1000");
+            return;
+        }
+
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}`, {
                 method: "PUT",
@@ -299,9 +305,11 @@ const VenueDetails = () => {
                                     <label className="block text-sm font-medium text-gray-700">Price per Hour</label>
                                     <input
                                         type="number"
+                                        min="1000"
                                         value={editForm.pricePerHour}
                                         onChange={e => setEditForm({ ...editForm, pricePerHour: e.target.value })}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
+                                        placeholder="1000"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
