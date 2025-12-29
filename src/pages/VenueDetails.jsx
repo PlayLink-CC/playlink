@@ -49,6 +49,17 @@ const VenueDetails = () => {
 
     const handleEditSubmit = async (e) => {
         e.preventDefault();
+
+        if (!editForm.name.trim()) {
+            toast.error("Venue name cannot be empty");
+            return;
+        }
+
+        if (Number(editForm.pricePerHour) < 1000) {
+            toast.error("Price must be at least 1000");
+            return;
+        }
+
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}`, {
                 method: "PUT",
@@ -74,6 +85,28 @@ const VenueDetails = () => {
 
         } catch (error) {
             toast.error(error.message);
+        }
+    };
+
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+    const handleDeleteVenue = async () => {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.message || "Failed to delete venue");
+            }
+
+            toast.success("Venue removed successfully");
+            navigate("/venue-dashboard");
+        } catch (error) {
+            toast.error(error.message);
+            setShowDeleteModal(false);
         }
     };
 
@@ -134,6 +167,14 @@ const VenueDetails = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {isOwner && (
+                    <button
+                        onClick={() => navigate("/venue-dashboard")}
+                        className="mb-6 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 font-medium shadow-sm"
+                    >
+                        ← Back to Dashboard
+                    </button>
+                )}
                 {/* Hero Section */}
                 <div className="relative h-96 rounded-2xl overflow-hidden mb-8 shadow-xl">
                     <img
@@ -220,11 +261,16 @@ const VenueDetails = () => {
                                     >
                                         Block Time Slots
                                     </button>
+                                    <button
+                                        className="w-full text-red-500 hover:text-red-700 py-2 text-sm font-medium transition mt-2 underline"
+                                        onClick={() => setShowDeleteModal(true)}
+                                    >
+                                        Remove Venue
+                                    </button>
                                 </div>
                             ) : (
                                 <button
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2"
-                                    onClick={() => navigate(`/create-booking`, { state: { venueId: venue.venue_id, venueName: venue.venue_name, price: venue.price_per_hour } })}
+                                    onClick={() => navigate(`/create-booking`, { state: { venue: venue } })}
                                 >
                                     Book Now
                                 </button>
@@ -263,9 +309,11 @@ const VenueDetails = () => {
                                     <label className="block text-sm font-medium text-gray-700">Price per Hour</label>
                                     <input
                                         type="number"
+                                        min="1000"
                                         value={editForm.pricePerHour}
                                         onChange={e => setEditForm({ ...editForm, pricePerHour: e.target.value })}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
+                                        placeholder="1000"
                                     />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -362,6 +410,32 @@ const VenueDetails = () => {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Confirmation Modal */}
+                {showDeleteModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl w-full max-w-md p-6 animate-fadeIn">
+                            <h2 className="text-xl font-bold mb-2 text-gray-900">Remove Venue?</h2>
+                            <p className="text-gray-600 mb-6">
+                                Are you sure you want to remove <strong>{venue.venue_name}</strong>? This action cannot be undone.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteVenue}
+                                    className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-medium shadow-sm"
+                                >
+                                    Yes, Remove Venue
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

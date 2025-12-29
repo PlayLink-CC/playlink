@@ -20,11 +20,7 @@ const AMENITIES = [
     { id: 5, name: "Scoreboard" },
 ];
 
-const POLICIES = [
-    { id: 1, name: "Standard (Refund 90% within 5 hours)" },
-    { id: 2, name: "Strict (Refund 80% within 24 hours)" },
-    { id: 3, name: "Flexible (Refund 90% within 6 hours)" },
-];
+
 
 const CreateVenue = () => {
     const { user, isAuthenticated } = useAuth();
@@ -32,13 +28,16 @@ const CreateVenue = () => {
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [policies, setPolicies] = useState([]);
+    const [policyLoading, setPolicyLoading] = useState(true);
+
     const [formData, setFormData] = useState({
         name: "",
         description: "",
         address: "",
         city: "",
         pricePerHour: "",
-        cancellationPolicyId: 1,
+        cancellationPolicyId: "",
         sportIds: [],
         amenityIds: [],
         imageUrls: [""],
@@ -55,6 +54,31 @@ const CreateVenue = () => {
             navigate("/");
         }
     }, [user, isAuthenticated, navigate]);
+
+    useEffect(() => {
+        const fetchPolicies = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/policies`, {
+                    credentials: "include"
+                });
+                if (!res.ok) throw new Error("Failed to fetch policies");
+                const data = await res.json();
+                setPolicies(data);
+                if (data.length > 0) {
+                    setFormData(prev => ({ ...prev, cancellationPolicyId: data[0].policy_id }));
+                }
+            } catch (err) {
+                console.error(err);
+                toast.error("Failed to load cancellation policies");
+            } finally {
+                setPolicyLoading(false);
+            }
+        };
+
+        if (isAuthenticated && user?.accountType === "VENUE_OWNER") {
+            fetchPolicies();
+        }
+    }, [isAuthenticated, user]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -95,13 +119,17 @@ const CreateVenue = () => {
 
     const validateStep = () => {
         if (step === 1) {
-            if (!formData.name || !formData.address || !formData.city) {
+            if (!formData.name.trim() || !formData.address.trim() || !formData.city.trim()) {
                 toast.error("Please fill in all required fields");
                 return false;
             }
         } else if (step === 2) {
             if (!formData.pricePerHour || isNaN(formData.pricePerHour)) {
                 toast.error("Please enter a valid price");
+                return false;
+            }
+            if (Number(formData.pricePerHour) < 1000) {
+                toast.error("Price must be at least 1000");
                 return false;
             }
         } else if (step === 3) {
@@ -243,11 +271,12 @@ const CreateVenue = () => {
                                 <label className="block text-sm font-medium text-gray-700">Price per Hour (LKR)</label>
                                 <input
                                     type="number"
+                                    min="1000"
                                     name="pricePerHour"
                                     value={formData.pricePerHour}
                                     onChange={handleChange}
                                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
-                                    placeholder="2500"
+                                    placeholder="1000"
                                 />
                             </div>
 
@@ -259,9 +288,15 @@ const CreateVenue = () => {
                                     onChange={handleChange}
                                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
                                 >
-                                    {POLICIES.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
+                                    {policyLoading ? (
+                                        <option>Loading policies...</option>
+                                    ) : (
+                                        policies.map(p => (
+                                            <option key={p.policy_id} value={p.policy_id}>
+                                                {p.name} (Refund {p.refund_percentage}% within {p.hours_before_start} hours)
+                                            </option>
+                                        ))
+                                    )}
                                 </select>
                             </div>
                         </div>
@@ -355,7 +390,12 @@ const CreateVenue = () => {
                             Back
                         </button>
                     ) : (
-                        <div></div> // Spacer
+                        <button
+                            onClick={() => navigate("/venue-dashboard")}
+                            className="px-6 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                            Back to Dashboard
+                        </button>
                     )}
 
                     {step < 4 ? (

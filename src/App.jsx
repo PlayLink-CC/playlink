@@ -10,6 +10,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import MainLayout from "./components/layout/MainLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import Login from "./pages/Login";
 import Home from "./pages/Home";
@@ -49,15 +50,22 @@ const App = () => {
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-        {/* All routes inside this Route will use MainLayout */}
-        <Route element={<MainLayout />}>
+        {/* Protected Routes for Players */}
+        <Route element={<ProtectedRoute allowedRoles={['PLAYER']}><MainLayout /></ProtectedRoute>}>
           <Route path="/" element={<Home />} />
           <Route path="/venues" element={<Venue />} />
-          <Route path="/venues/:id" element={<VenueDetails />} />
-
           <Route path="/booking-summary" element={<BookingSummary />} />
           <Route path="/create-booking" element={<CreateBooking />} />
-          <Route path="/wallet" element={<Wallet />} /> {/* Add Wallet Route */}
+          <Route path="/wallet" element={<Wallet />} />
+        </Route>
+
+        {/* Shared Protected Routes (Player & Venue Owner) */}
+        <Route element={<ProtectedRoute allowedRoles={['PLAYER', 'VENUE_OWNER']}><MainLayout /></ProtectedRoute>}>
+          <Route path="/venues/:id" element={<VenueDetails />} />
+        </Route>
+
+        {/* Protected Routes for Venue Owners */}
+        <Route element={<ProtectedRoute allowedRoles={['VENUE_OWNER']}><MainLayout /></ProtectedRoute>}>
           <Route path="/venue-dashboard" element={<VenueDashboard />} />
           <Route path="/create-venue" element={<CreateVenue />} />
         </Route>

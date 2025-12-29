@@ -1,18 +1,25 @@
 // src/pages/CreateBooking.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet } from "lucide-react";
+import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet, Shield } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import TimeInput from "../components/TimeInput.jsx";
 import { doesBookingFitInWindow } from "../utils/timeUtil.js";
 
 const CreateBooking = () => {
   const { user, isAuthenticated } = useAuth();
-  const location = useLocation();
+  const { state } = useLocation();
   const navigate = useNavigate();
 
-  const venue = location.state?.venue;
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
+  // Initialize venue from state if available, but we will refresh it
+  const [venue, setVenue] = useState(state?.venue || (state?.venueId ? { venue_id: state.venueId, venue_name: state.venueName, price_per_hour: state.price } : null));
+
+  // Booking State
   // Booking State
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -60,6 +67,24 @@ const CreateBooking = () => {
       // Ideally: fetch('/api/users/me') and check balance if present.
     }
   }, [isAuthenticated]);
+
+  // Fetch fresh venue data to get policy details
+  useEffect(() => {
+    if (venue?.venue_id) {
+      const fetchVenue = async () => {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${venue.venue_id}?_t=${Date.now()}`);
+          if (res.ok) {
+            const data = await res.json();
+            setVenue(prev => ({ ...prev, ...data }));
+          }
+        } catch (err) {
+          console.error("Failed to fetch venue details", err);
+        }
+      };
+      fetchVenue();
+    }
+  }, [venue?.venue_id]);
 
   // User Search
   useEffect(() => {
@@ -402,6 +427,27 @@ const CreateBooking = () => {
                       </div>
                     ))
                 )}
+
+                {/* Cancellation Policy */}
+                <div className="mt-6 border-t pt-4">
+                  <h3 className="font-bold text-gray-900 mb-3 flex items-center text-sm">
+                    <Shield size={16} className="mr-2 text-red-500" />
+                    Cancellation Policy
+                  </h3>
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm">
+                    <p className="font-semibold text-red-800 mb-1">{venue.policy_name || "Standard Policy"}</p>
+                    <p className="text-red-700 text-xs">
+                      {venue.refund_percentage ? (
+                        <>
+                          LKR {((totalPrice * (100 - Number(venue.refund_percentage))) / 100).toFixed(2)} penalty if cancelled
+                          {venue.hours_before_start > 0 ? ` within ${venue.hours_before_start} hours of start time.` : " anytime."}
+                        </>
+                      ) : (
+                        "Review policy with venue owner."
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>

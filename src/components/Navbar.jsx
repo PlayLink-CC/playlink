@@ -40,21 +40,25 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
-            <Link to="/" className="text-white hover:text-green-400 transition">
-              Home
-            </Link>
-            <Link
-              to="/venues"
-              className="text-white hover:text-green-400 transition"
-            >
-              Venues
-            </Link>
-            <Link
-              to="/booking-summary"
-              className="text-white hover:text-green-400 transition"
-            >
-              My Bookings
-            </Link>
+            {isAuthenticated && user?.accountType === "VENUE_OWNER" ? null : (
+              <>
+                <Link to="/" className="text-white hover:text-green-400 transition">
+                  Home
+                </Link>
+                <Link
+                  to="/venues"
+                  className="text-white hover:text-green-400 transition"
+                >
+                  Venues
+                </Link>
+                <Link
+                  to="/booking-summary"
+                  className="text-white hover:text-green-400 transition"
+                >
+                  My Bookings
+                </Link>
+              </>
+            )}
 
             {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
               <>
@@ -73,7 +77,7 @@ const Navbar = () => {
               </>
             )}
 
-            {isAuthenticated && walletBalance !== null && (
+            {isAuthenticated && walletBalance !== null && user?.accountType !== "VENUE_OWNER" && (
               <Link to="/wallet" className="text-white text-sm font-medium mr-4 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2 transition">
                 {/* Optional Icon */}
                 <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
@@ -165,27 +169,31 @@ const Navbar = () => {
         {/* Mobile Nav Links */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4 space-y-3 border-t border-gray-700 pt-4">
-            <Link
-              to="/"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              Home
-            </Link>
-            <Link
-              to="/venues"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              Venues
-            </Link>
-            <Link
-              to="/booking-summary"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              My Bookings
-            </Link>
+            {(isAuthenticated && user?.accountType === "VENUE_OWNER") ? null : (
+              <>
+                <Link
+                  to="/"
+                  onClick={toggleMenu}
+                  className="block text-white hover:text-green-400 transition py-2"
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/venues"
+                  onClick={toggleMenu}
+                  className="block text-white hover:text-green-400 transition py-2"
+                >
+                  Venues
+                </Link>
+                <Link
+                  to="/booking-summary"
+                  onClick={toggleMenu}
+                  className="block text-white hover:text-green-400 transition py-2"
+                >
+                  My Bookings
+                </Link>
+              </>
+            )}
             {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
               <>
                 <Link
