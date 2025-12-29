@@ -103,8 +103,8 @@ const CreateBooking = () => {
         if (res.ok) {
           // Filter out already invited users and self
           const filtered = (data.users || []).filter(u =>
-            u.user_id !== user.user_id &&
-            !invitees.find(i => i.user_id === u.user_id)
+            String(u.user_id) !== String(user.id) &&
+            !invitees.find(i => String(i.user_id) === String(u.user_id))
           );
           setSearchResults(filtered);
         }
