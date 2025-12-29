@@ -20,7 +20,11 @@ import NotFound from "./pages/NotFound";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import CreateBooking from "./pages/CreateBooking";
+
 import VenueDashboard from "./pages/VenueDashboard";
+import CreateVenue from "./pages/CreateVenue";
+import VenueDetails from "./pages/VenueDetails";
+import Wallet from "./pages/Wallet";
 
 /**
  * App Component - Main application router
@@ -49,9 +53,13 @@ const App = () => {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/venues" element={<Venue />} />
-          <Route path="/venue-dashboard" element={<VenueDashboard />} />
+          <Route path="/venues/:id" element={<VenueDetails />} />
+
           <Route path="/booking-summary" element={<BookingSummary />} />
           <Route path="/create-booking" element={<CreateBooking />} />
+          <Route path="/wallet" element={<Wallet />} /> {/* Add Wallet Route */}
+          <Route path="/venue-dashboard" element={<VenueDashboard />} />
+          <Route path="/create-venue" element={<CreateVenue />} />
         </Route>
 
         {/* 404 Not Found Route - must be last */}

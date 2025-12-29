@@ -8,7 +8,7 @@ const Navbar = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, walletBalance } = useAuth();
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleProfile = () => setIsProfileOpen((prev) => !prev);
@@ -55,6 +55,31 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
+
+            {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
+              <>
+                <Link
+                  to="/venue-dashboard"
+                  className="text-white hover:text-green-400 transition"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/create-venue"
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                >
+                  List Your Venue
+                </Link>
+              </>
+            )}
+
+            {isAuthenticated && walletBalance !== null && (
+              <Link to="/wallet" className="text-white text-sm font-medium mr-4 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2 transition">
+                {/* Optional Icon */}
+                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                {Number(walletBalance).toFixed(2)}
+              </Link>
+            )}
 
             {/* Profile icon + dropdown */}
             <div className="relative">
@@ -161,6 +186,24 @@ const Navbar = () => {
             >
               My Bookings
             </Link>
+            {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
+              <>
+                <Link
+                  to="/venue-dashboard"
+                  onClick={toggleMenu}
+                  className="block text-white hover:text-green-400 transition py-2"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/create-venue"
+                  onClick={toggleMenu}
+                  className="block text-green-400 hover:text-green-300 transition py-2 font-medium"
+                >
+                  List Your Venue
+                </Link>
+              </>
+            )}
           </div>
         )}
 

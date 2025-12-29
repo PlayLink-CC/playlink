@@ -10,13 +10,14 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [walletBalance, setWalletBalance] = useState(null);
   const [initialising, setInitialising] = useState(true);
 
   // Check if there is a valid session cookie and load current user
   const fetchCurrentUser = async () => {
     try {
       const res = await fetch(
-        "http://18.141.178.133:3000/api/users/authenticate",
+        `${import.meta.env.VITE_API_URL}/api/users/authenticate`,
         {
           method: "GET",
           credentials: "include",
@@ -25,15 +26,34 @@ export const AuthProvider = ({ children }) => {
 
       if (!res.ok) {
         setUser(null);
+        setWalletBalance(null);
         return;
       }
 
       const data = await res.json();
       // data.user is the payload from the token: { id, email, accountType }
       setUser(data.user);
+
+      // Fetch wallet balance if user exists
+      await fetchWalletBalance();
     } catch (err) {
       console.error("Error fetching current user", err);
       setUser(null);
+      setWalletBalance(null);
+    }
+  };
+
+  const fetchWalletBalance = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/wallet/my-balance`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setWalletBalance(data.balance);
+      } else {
+        setWalletBalance(null);
+      }
+    } catch (err) {
+      console.error("Failed to load wallet balance", err);
     }
   };
 
@@ -46,7 +66,7 @@ export const AuthProvider = ({ children }) => {
 
   // Login – call backend and store user in context
   const login = async (email, password) => {
-    const res = await fetch("http://18.141.178.133:3000/api/users/login", {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/login`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -67,13 +87,16 @@ export const AuthProvider = ({ children }) => {
       accountType: data.accountType,
     });
 
+    // Fetch balance after login
+    await fetchWalletBalance();
+
     return data;
   };
 
   // Logout – optional backend call + clear local auth state
   const logout = async () => {
     try {
-      await fetch("http://18.141.178.133:3000/api/users/logout", {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/users/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -81,12 +104,15 @@ export const AuthProvider = ({ children }) => {
       console.error("Logout request failed (front-end will still clear user)", err);
     } finally {
       setUser(null);
+      setWalletBalance(null);
     }
   };
 
   const value = {
     user,
     isAuthenticated: !!user,
+    walletBalance,
+    fetchWalletBalance,
     login,
     logout,
     refreshUser: fetchCurrentUser,
