@@ -330,8 +330,13 @@ const BookingSummary = () => {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {bookings.map((b) => {
+          (() => {
+            // Sort Descending
+            const sorted = [...bookings].sort((a, b) => new Date(b.booking_start) - new Date(a.booking_start));
+            const cancelledList = sorted.filter(b => b.status === 'CANCELLED');
+            const activeList = sorted.filter(b => b.status !== 'CANCELLED');
+
+            const renderCard = (b) => {
               const { date, startTime, endTime } = formatRange(
                 b.booking_start,
                 b.booking_end
@@ -466,8 +471,34 @@ const BookingSummary = () => {
                   </div>
                 </div>
               );
-            })}
-          </div>
+            };
+
+            return (
+              <div className="space-y-10">
+                {/* Active Section */}
+                <div>
+                  {activeList.length > 0 && (
+                    <div className="space-y-4">
+                      {activeList.map(renderCard)}
+                    </div>
+                  )}
+                  {activeList.length === 0 && cancelledList.length > 0 && (
+                    <p className="text-gray-500 italic mb-4">No active bookings.</p>
+                  )}
+                </div>
+
+                {/* Cancelled Section */}
+                {cancelledList.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4 border-t pt-8">Cancellation History</h2>
+                    <div className="space-y-4 opacity-75 grayscale-[30%]">
+                      {cancelledList.map(renderCard)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()
         )}
       </div>
 
