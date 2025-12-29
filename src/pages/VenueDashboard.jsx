@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { PlusCircle, MapPin, Activity } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
 const VenueDashboard = () => {
@@ -45,6 +46,34 @@ const VenueDashboard = () => {
 
         if (user) fetchData();
     }, [user]);
+
+    const [unblockModal, setUnblockModal] = useState({ show: false, bookingId: null });
+
+    const processUnblock = async () => {
+        const bookingId = unblockModal.bookingId;
+        if (!bookingId) return;
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${bookingId}/cancel`, {
+                method: "PATCH",
+                credentials: "include"
+            });
+            if (res.ok) {
+                toast.success("Slot unblocked");
+                setBookings(prev => prev.filter(b => b.booking_id !== bookingId));
+                setUnblockModal({ show: false, bookingId: null });
+            } else {
+                toast.error("Failed to unblock");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error unblocking slot");
+        }
+    };
+
+    const handleUnblock = (bookingId) => {
+        setUnblockModal({ show: true, bookingId });
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 py-10 px-4">
@@ -199,6 +228,7 @@ const VenueDashboard = () => {
                                                 <th className="pb-3 font-medium">Venue</th>
                                                 <th className="pb-3 font-medium">Date & Time</th>
                                                 <th className="pb-3 font-medium">Status</th>
+                                                <th className="pb-3 font-medium">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="text-sm">
@@ -220,11 +250,19 @@ const VenueDashboard = () => {
                                                                 BLOCKED
                                                             </span>
                                                         </td>
+                                                        <td className="py-4">
+                                                            <button
+                                                                onClick={() => handleUnblock(booking.booking_id)}
+                                                                className="px-3 py-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs rounded-lg transition"
+                                                            >
+                                                                Unblock
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             {bookings.filter(b => b.status === 'BLOCKED').length === 0 && (
                                                 <tr>
-                                                    <td colSpan="3" className="py-4 text-gray-500 text-center italic">No blocked slots</td>
+                                                    <td colSpan="4" className="py-4 text-gray-500 text-center italic">No blocked slots</td>
                                                 </tr>
                                             )}
                                         </tbody>
@@ -235,6 +273,32 @@ const VenueDashboard = () => {
                     )}
                 </div>
             </div>
+
+            {/* Unblock Confirmation Modal */}
+            {unblockModal.show && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Unblock Time Slot?</h3>
+                        <p className="text-gray-600 mb-6">
+                            This will make the slot available for booking again. Are you sure you want to proceed?
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setUnblockModal({ show: false, bookingId: null })}
+                                className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={processUnblock}
+                                className="px-5 py-2.5 text-white bg-green-600 hover:bg-green-700 rounded-lg font-medium shadow-md transition"
+                            >
+                                Yes, Unblock Slot
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
