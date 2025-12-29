@@ -1,4 +1,5 @@
 name: Deploy Frontend to AWS
+
 on:
   push:
     branches: [ main ]
@@ -11,6 +12,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install and Build
+        # This step "bakes" your AWS API IP into the JavaScript files
         run: |
           npm install
           npm run build
@@ -23,16 +25,18 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # Using "dist/" and strip_components: 1 is the most stable way to copy contents
           source: "dist/"
           target: "/var/www/html"
           strip_components: 1
-          rm: true # This will now work because of Step 1
+          # This flag deletes old index.js/css files so they don't pile up
+          rm: true 
 
       - name: Restart Nginx
+        # Forces the server to clear its memory and serve the new index.html
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: sudo systemctl restart nginx
+          script: |
+            sudo systemctl restart nginx
