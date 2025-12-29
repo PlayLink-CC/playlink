@@ -114,13 +114,14 @@ const VenueDetails = () => {
         e.preventDefault();
         try {
             // Calculate end time based on duration
+            // Calculate end time based on duration
             const [sh, sm] = blockForm.startTime.split(':').map(Number);
             const startTotalMinutes = sh * 60 + sm;
             const endTotalMinutes = startTotalMinutes + (Number(blockForm.duration) * 60);
 
             const eh = Math.floor(endTotalMinutes / 60);
             const em = endTotalMinutes % 60;
-            const endTime = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
+            const endTimeStr = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
 
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/block`, {
                 method: "POST",
@@ -129,7 +130,7 @@ const VenueDetails = () => {
                 body: JSON.stringify({
                     date: blockForm.date,
                     startTime: blockForm.startTime,
-                    endTime: endTime,
+                    endTime: endTimeStr,
                     reason: "Manual block by owner"
                 })
             });
@@ -368,6 +369,7 @@ const VenueDetails = () => {
                                     <input
                                         type="date"
                                         required
+                                        min={new Date().toISOString().split('T')[0]}
                                         value={blockForm.date}
                                         onChange={e => setBlockForm({ ...blockForm, date: e.target.value })}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
