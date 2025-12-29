@@ -25,13 +25,12 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 1. Sync the local repo on the server (the git pull thing)
-            # Replace /home/ubuntu/playlink with the actual path to your repo folder
+            # 1. Sync the repo folder (Fixes the missing files issue)
             cd /home/ubuntu/playlink
             git fetch origin main
             git reset --hard origin/main
             
-            # 2. Clean the web directory
+            # 2. Clean the web directory for the new build
             sudo rm -rf /var/www/html/*
             sudo chown -R ubuntu:ubuntu /var/www/html
 
