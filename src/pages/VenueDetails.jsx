@@ -265,8 +265,7 @@ const VenueDetails = () => {
                                 </div>
                             ) : (
                                 <button
-                                    className="w-full bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2"
-                                    onClick={() => navigate(`/create-booking`, { state: { venueId: venue.venue_id, venueName: venue.venue_name, price: venue.price_per_hour } })}
+                                    onClick={() => navigate(`/create-booking`, { state: { venue: venue } })}
                                 >
                                     Book Now
                                 </button>
