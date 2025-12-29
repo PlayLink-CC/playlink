@@ -18,14 +18,20 @@ jobs:
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
-      - name: Clean Old Files
-        # We do this manually because 'rm: true' in the SCP action is failing
+      - name: Sync Server Repo and Clean Old Files
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # 1. Sync the local repo on the server (the git pull thing)
+            # Replace /home/ubuntu/playlink with the actual path to your repo folder
+            cd /home/ubuntu/playlink
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # 2. Clean the web directory
             sudo rm -rf /var/www/html/*
             sudo chown -R ubuntu:ubuntu /var/www/html
 
@@ -38,7 +44,7 @@ jobs:
           source: "dist/"
           target: "/var/www/html"
           strip_components: 1
-          rm: false # Set to false because we cleaned it in the step above
+          rm: false 
 
       - name: Restart Nginx
         uses: appleboy/ssh-action@master
