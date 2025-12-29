@@ -11,6 +11,11 @@ const CreateBooking = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
 
+  // Scroll to top on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Initialize venue from state if available, but we will refresh it
   const [venue, setVenue] = useState(state?.venue || (state?.venueId ? { venue_id: state.venueId, venue_name: state.venueName, price_per_hour: state.price } : null));
 

@@ -221,13 +221,13 @@ const Venue = () => {
               <div
                 key={venue.venue_id}
                 onClick={() => handleBookNow(venue)}
-                className="bg-white rounded-2xl shadow-md hover:shadow-xl transition overflow-hidden cursor-pointer"
+                className="bg-white rounded-2xl shadow-md hover:shadow-xl hover:scale-105 transition duration-300 overflow-hidden cursor-pointer"
               >
                 <div className="relative h-48 overflow-hidden">
                   <img
                     src={venue.primary_image}
                     alt={venue.venue_name}
-                    className="w-full h-full object-cover hover:scale-110 transition duration-300"
+                    className="w-full h-full object-cover"
                   />
                 </div>
 
@@ -294,7 +294,10 @@ const Venue = () => {
                   )}
 
                   <button
-                    onClick={() => handleBookNow(venue)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleBookNow(venue);
+                    }}
                     className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition cursor-pointer"
                   >
                     Book Now

@@ -40,21 +40,25 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
-            <Link to="/" className="text-white hover:text-green-400 transition">
-              Home
-            </Link>
-            <Link
-              to="/venues"
-              className="text-white hover:text-green-400 transition"
-            >
-              Venues
-            </Link>
-            <Link
-              to="/booking-summary"
-              className="text-white hover:text-green-400 transition"
-            >
-              My Bookings
-            </Link>
+            {isAuthenticated && user?.accountType === "VENUE_OWNER" ? null : (
+              <>
+                <Link to="/" className="text-white hover:text-green-400 transition">
+                  Home
+                </Link>
+                <Link
+                  to="/venues"
+                  className="text-white hover:text-green-400 transition"
+                >
+                  Venues
+                </Link>
+                <Link
+                  to="/booking-summary"
+                  className="text-white hover:text-green-400 transition"
+                >
+                  My Bookings
+                </Link>
+              </>
+            )}
 
             {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
               <>
@@ -165,27 +169,31 @@ const Navbar = () => {
         {/* Mobile Nav Links */}
         {isMenuOpen && (
           <div className="md:hidden mt-4 pb-4 space-y-3 border-t border-gray-700 pt-4">
-            <Link
-              to="/"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              Home
-            </Link>
-            <Link
-              to="/venues"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              Venues
-            </Link>
-            <Link
-              to="/booking-summary"
-              onClick={toggleMenu}
-              className="block text-white hover:text-green-400 transition py-2"
-            >
-              My Bookings
-            </Link>
+            {(isAuthenticated && user?.accountType === "VENUE_OWNER") ? null : (
+              <>
+                <Link
+                  to="/"
+                  onClick={toggleMenu}
+                  className="block text-white hover:text-green-400 transition py-2"
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/venues"
+                  onClick={toggleMenu}
+                  className="block text-white hover:text-green-400 transition py-2"
+                >
+                  Venues
+                </Link>
+                <Link
+                  to="/booking-summary"
+                  onClick={toggleMenu}
+                  className="block text-white hover:text-green-400 transition py-2"
+                >
+                  My Bookings
+                </Link>
+              </>
+            )}
             {isAuthenticated && user?.accountType === "VENUE_OWNER" && (
               <>
                 <Link
