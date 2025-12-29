@@ -50,6 +50,11 @@ const VenueDetails = () => {
     const handleEditSubmit = async (e) => {
         e.preventDefault();
 
+        if (!editForm.name.trim()) {
+            toast.error("Venue name cannot be empty");
+            return;
+        }
+
         if (Number(editForm.pricePerHour) < 1000) {
             toast.error("Price must be at least 1000");
             return;

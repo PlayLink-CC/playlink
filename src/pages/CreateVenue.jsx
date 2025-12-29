@@ -119,7 +119,7 @@ const CreateVenue = () => {
 
     const validateStep = () => {
         if (step === 1) {
-            if (!formData.name || !formData.address || !formData.city) {
+            if (!formData.name.trim() || !formData.address.trim() || !formData.city.trim()) {
                 toast.error("Please fill in all required fields");
                 return false;
             }
