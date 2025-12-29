@@ -385,7 +385,12 @@ const CreateVenue = () => {
                             Back
                         </button>
                     ) : (
-                        <div></div> // Spacer
+                        <button
+                            onClick={() => navigate("/venue-dashboard")}
+                            className="px-6 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                            Back to Dashboard
+                        </button>
                     )}
 
                     {step < 4 ? (

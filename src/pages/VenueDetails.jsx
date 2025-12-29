@@ -134,6 +134,14 @@ const VenueDetails = () => {
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                {isOwner && (
+                    <button
+                        onClick={() => navigate("/venue-dashboard")}
+                        className="mb-6 px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 font-medium shadow-sm"
+                    >
+                        ← Back to Dashboard
+                    </button>
+                )}
                 {/* Hero Section */}
                 <div className="relative h-96 rounded-2xl overflow-hidden mb-8 shadow-xl">
                     <img
