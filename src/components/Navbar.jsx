@@ -1,6 +1,7 @@
 // src/components/Navbar.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Lock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
@@ -22,6 +23,10 @@ const Navbar = () => {
     await logout();
     setIsProfileOpen(false);
     navigate("/");
+  };
+
+  const dummyWalletClick = () => {
+    navigate("/login", { state: { from: "/wallet" } });
   };
 
   const initial =
@@ -52,7 +57,8 @@ const Navbar = () => {
                   Venues
                 </Link>
                 <Link
-                  to="/booking-summary"
+                  to={isAuthenticated ? "/booking-summary" : "/login"}
+                  state={isAuthenticated ? {} : { from: "/booking-summary" }}
                   className="text-white hover:text-green-400 transition"
                 >
                   My Bookings
@@ -77,12 +83,22 @@ const Navbar = () => {
               </>
             )}
 
+            {/* Wallet Logic */}
             {isAuthenticated && walletBalance !== null && user?.accountType !== "VENUE_OWNER" && (
               <Link to="/wallet" className="text-white text-sm font-medium mr-4 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2 transition">
-                {/* Optional Icon */}
                 <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                 {Number(walletBalance).toFixed(2)}
               </Link>
+            )}
+
+            {!isAuthenticated && (
+              <button
+                onClick={dummyWalletClick}
+                className="text-gray-400 hover:text-white text-sm font-medium mr-4 flex items-center gap-2 transition"
+                title="Login to view wallet"
+              >
+                <Lock size={16} />
+              </button>
             )}
 
             {/* Profile icon + dropdown */}
@@ -186,7 +202,8 @@ const Navbar = () => {
                   Venues
                 </Link>
                 <Link
-                  to="/booking-summary"
+                  to={isAuthenticated ? "/booking-summary" : "/login"}
+                  state={isAuthenticated ? {} : { from: "/booking-summary" }}
                   onClick={toggleMenu}
                   className="block text-white hover:text-green-400 transition py-2"
                 >

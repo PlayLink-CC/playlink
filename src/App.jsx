@@ -50,18 +50,18 @@ const App = () => {
         <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
-        {/* Protected Routes for Players */}
-        <Route element={<ProtectedRoute allowedRoles={['PLAYER']}><MainLayout /></ProtectedRoute>}>
+        {/* Public Routes */}
+        <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/venues" element={<Venue />} />
-          <Route path="/booking-summary" element={<BookingSummary />} />
+          <Route path="/venues/:id" element={<VenueDetails />} />
           <Route path="/create-booking" element={<CreateBooking />} />
-          <Route path="/wallet" element={<Wallet />} />
         </Route>
 
-        {/* Shared Protected Routes (Player & Venue Owner) */}
-        <Route element={<ProtectedRoute allowedRoles={['PLAYER', 'VENUE_OWNER']}><MainLayout /></ProtectedRoute>}>
-          <Route path="/venues/:id" element={<VenueDetails />} />
+        {/* Protected Routes for Players */}
+        <Route element={<ProtectedRoute allowedRoles={['PLAYER']}><MainLayout /></ProtectedRoute>}>
+          <Route path="/booking-summary" element={<BookingSummary />} />
+          <Route path="/wallet" element={<Wallet />} />
         </Route>
 
         {/* Protected Routes for Venue Owners */}

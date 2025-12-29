@@ -16,14 +16,15 @@ const CreateBooking = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Initialize venue from state if available, but we will refresh it
-  const [venue, setVenue] = useState(state?.venue || (state?.venueId ? { venue_id: state.venueId, venue_name: state.venueName, price_per_hour: state.price } : null));
+  // Initialize venue from state if available (supports restoration after login)
+  const initialVenue = state?.venue || state?.bookingState?.venue || (state?.venueId ? { venue_id: state.venueId, venue_name: state.venueName, price_per_hour: state.price } : null);
+  const [venue, setVenue] = useState(initialVenue);
 
   // Booking State
-  // Booking State
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
-  const [hours, setHours] = useState(1);
+  const bookingState = state?.bookingState || {};
+  const [selectedDate, setSelectedDate] = useState(bookingState.selectedDate || "");
+  const [selectedTime, setSelectedTime] = useState(bookingState.selectedTime || "");
+  const [hours, setHours] = useState(bookingState.hours || 1);
   const [loading, setLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -33,7 +34,7 @@ const CreateBooking = () => {
   // Split & Wallet State
   const [inviteQuery, setInviteQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [invitees, setInvitees] = useState([]); // Array of user objects
+  const [invitees, setInvitees] = useState(bookingState.invitees || []); // Array of user objects
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [searchingUsers, setSearchingUsers] = useState(false);
@@ -199,7 +200,18 @@ const CreateBooking = () => {
 
   const handleCheckout = async () => {
     if (!isAuthenticated) {
-      navigate("/login");
+      navigate("/login", {
+        state: {
+          from: "/create-booking",
+          bookingState: {
+            venue,
+            selectedDate,
+            selectedTime,
+            hours,
+            invitees
+          }
+        }
+      });
       return;
     }
     if (!selectedDate || !selectedTime || !hours) {

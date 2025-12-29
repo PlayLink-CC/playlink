@@ -1,7 +1,7 @@
 // src/pages/Login.jsx
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -10,6 +10,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
 
   const handleSubmit = async () => {
@@ -23,14 +24,18 @@ export default function SignInPage() {
     try {
       const user = await login(email, password);
       console.log("Login successful:", user);
+      toast.success("Successfully logged in");
 
       if (user.accountType === "VENUE_OWNER") {
         navigate("/venue-dashboard");
       } else {
-        navigate("/");
+        // Redirect back to previous page if available
+        if (location.state?.from) {
+          navigate(location.state.from, { state: location.state });
+        } else {
+          navigate("/");
+        }
       }
-
-      toast.success("Successfully logged in");
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Login failed");
