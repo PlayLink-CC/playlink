@@ -60,6 +60,21 @@ const VenueDetails = () => {
             return;
         }
 
+        if (!editForm.address || !editForm.address.trim()) {
+            toast.error("Address cannot be empty");
+            return;
+        }
+
+        if (!editForm.city || !editForm.city.trim()) {
+            toast.error("City cannot be empty");
+            return;
+        }
+
+        if (!editForm.description || !editForm.description.trim()) {
+            toast.error("Description cannot be empty");
+            return;
+        }
+
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}`, {
                 method: "PUT",
