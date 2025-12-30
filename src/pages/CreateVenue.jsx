@@ -151,6 +151,15 @@ const CreateVenue = () => {
         setStep((prev) => prev - 1);
     };
 
+    const checkImage = (url) => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(true);
+            img.onerror = () => resolve(false);
+            img.src = url;
+        });
+    };
+
     const handleSubmit = async () => {
         if (isSubmitting) return;
         setIsSubmitting(true);
@@ -158,6 +167,22 @@ const CreateVenue = () => {
         try {
             // Filter out empty image URLs
             const cleanImages = formData.imageUrls.filter((url) => url.trim() !== "");
+
+            if (cleanImages.length === 0) {
+                toast.error("Please provide at least one image");
+                setIsSubmitting(false);
+                return;
+            }
+
+            // Validate images
+            for (const url of cleanImages) {
+                const isValid = await checkImage(url);
+                if (!isValid) {
+                    toast.error(`Cannot load image: ${url}`);
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
 
             const payload = {
                 ...formData,
@@ -293,7 +318,7 @@ const CreateVenue = () => {
                                     ) : (
                                         policies.map(p => (
                                             <option key={p.policy_id} value={p.policy_id}>
-                                                {p.name} (Refund {p.refund_percentage}% within {p.hours_before_start} hours)
+                                                {p.name} (Refund {p.refund_percentage}% {p.hours_before_start > 0 ? `within ${p.hours_before_start} hours` : "anytime"})
                                             </option>
                                         ))
                                     )}
