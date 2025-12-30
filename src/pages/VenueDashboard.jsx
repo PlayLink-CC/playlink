@@ -100,7 +100,7 @@ const VenueDashboard = () => {
                         <p className="text-3xl font-bold text-gray-900 mt-2">{stats.total_bookings}</p>
                     </div>
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                        <h3 className="text-gray-500 text-sm font-medium">Wallet Balance</h3>
+                        <h3 className="text-gray-500 text-sm font-medium">Revenue</h3>
                         <p className="text-2xl font-bold text-gray-900 mt-1">
                             LKR {stats.total_revenue ? Number(stats.total_revenue).toLocaleString() : '0'}
                         </p>
