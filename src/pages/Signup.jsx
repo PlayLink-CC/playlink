@@ -41,8 +41,9 @@ const SignUpPage = () => {
       return;
     }
 
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters long.");
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      toast.error("Password must match requirements: 8+ chars, 1 uppercase, 1 lowercase, 1 number, 1 special char.");
       return;
     }
 
