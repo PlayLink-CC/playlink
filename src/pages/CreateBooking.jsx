@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet, Shield } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
-import TimeInput from "../components/TimeInput.jsx";
 import { doesBookingFitInWindow } from "../utils/timeUtil.js";
 
 const CreateBooking = () => {
@@ -30,6 +29,8 @@ const CreateBooking = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [slotError, setSlotError] = useState("");
   const [timeValidationError, setTimeValidationError] = useState("");
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [loadingAvailableSlots, setLoadingAvailableSlots] = useState(false);
 
   // Split & Wallet State
   const [inviteQuery, setInviteQuery] = useState("");
@@ -50,16 +51,7 @@ const CreateBooking = () => {
   const pad = (n) => String(n).padStart(2, "0");
   const todayString = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
-  let minTime = null;
-  if (selectedDate === todayString) {
-    const now = new Date();
-    const minutes = now.getHours() * 60 + now.getMinutes();
-    const rounded = Math.ceil(minutes / 15) * 15;
-    const hh = Math.floor(rounded / 60);
-    const mm = rounded % 60;
-    if (rounded >= 22 * 60) minTime = "22:00";
-    else minTime = `${pad(hh)}:${pad(mm)}`;
-  }
+
 
   // Fetch Wallet Balance
   useEffect(() => {
@@ -135,6 +127,34 @@ const CreateBooking = () => {
     };
     fetchBookedSlots();
   }, [selectedDate, venue]);
+
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      if (!selectedDate || !venue || !hours) return;
+      setLoadingAvailableSlots(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/available-slots/${venue.venue_id}?date=${selectedDate}&hours=${hours}`);
+        if (res.ok) {
+          const data = await res.json();
+          // API returns { slots: [{ time, available }, ...] }
+          setAvailableSlots(data.slots || []);
+        }
+      } catch (err) {
+        console.error("Failed to load available slots", err);
+      } finally {
+        setLoadingAvailableSlots(false);
+      }
+    };
+    fetchAvailableSlots();
+  }, [selectedDate, hours, venue]);
+
+  const formatTime = (time24) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":").map(Number);
+    const date = new Date();
+    date.setHours(h, m);
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
 
   useEffect(() => {
     if (selectedTime && hours) {
@@ -313,10 +333,34 @@ const CreateBooking = () => {
                 </label>
               </div>
 
-              <label className="block mb-6">
-                <span className="block text-sm font-medium text-gray-700 mb-1">Start time</span>
-                <TimeInput value={selectedTime} onChange={setSelectedTime} minTime={minTime} />
-              </label>
+              <div className="mb-6">
+                <span className="block text-sm font-medium text-gray-700 mb-2">Available Start Times</span>
+                {!selectedDate ? (
+                  <p className="text-sm text-gray-500">Please select a date first.</p>
+                ) : loadingAvailableSlots ? (
+                  <p className="text-sm text-gray-500">Loading slots...</p>
+                ) : availableSlots.length === 0 ? (
+                  <p className="text-sm text-red-500">No available slots for this duration.</p>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-60 overflow-y-auto p-1">
+                    {availableSlots.map((slot) => (
+                      <button
+                        key={slot.time}
+                        onClick={() => slot.available && setSelectedTime(slot.time)}
+                        disabled={!slot.available}
+                        className={`px-2 py-2 text-sm font-medium rounded-lg border transition ${!slot.available
+                          ? "bg-red-50 text-red-400 border-red-100 cursor-not-allowed"
+                          : selectedTime === slot.time
+                            ? "bg-green-600 text-white border-green-600 ring-2 ring-green-300"
+                            : "bg-white text-gray-700 border-gray-300 hover:border-green-500 hover:bg-green-50"
+                          }`}
+                      >
+                        {formatTime(slot.time)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {timeValidationError && (
                 <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3">
@@ -441,7 +485,7 @@ const CreateBooking = () => {
             {/* Booked Slots */}
             {selectedDate && (
               <div className="bg-white rounded-2xl shadow-md p-6 sticky top-10">
-                <h3 className="font-bold text-gray-900 mb-4">Availability</h3>
+                <h3 className="font-bold text-gray-900 mb-4">Unavailable Times</h3>
                 {loadingSlots ? <p>Loading...</p> : (
                   bookedSlots.length === 0 ? <p className="text-green-600 text-sm">Full availability.</p> :
                     bookedSlots.map((s, i) => (
