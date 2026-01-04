@@ -11,6 +11,7 @@ const VenueDetails = () => {
     const { user, isAuthenticated } = useAuth();
     const [venue, setVenue] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [allAmenities, setAllAmenities] = useState([]);
 
     const isOwner = isAuthenticated && user?.accountType === "VENUE_OWNER" && venue?.owner_id === user?.id;
 
@@ -31,6 +32,22 @@ const VenueDetails = () => {
         };
         fetchVenue();
     }, [id]);
+
+    useEffect(() => {
+        const fetchAmenities = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/amenities`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setAllAmenities(data);
+                }
+            } catch (error) {
+                console.error("Error fetching amenities:", error);
+            }
+        };
+        fetchAmenities();
+    }, []);
+
     const [showEditModal, setShowEditModal] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [editForm, setEditForm] = useState({});
@@ -42,7 +59,8 @@ const VenueDetails = () => {
             description: venue.description,
             pricePerHour: venue.price_per_hour,
             address: venue.address,
-            city: venue.city
+            city: venue.city,
+            amenityIds: venue.amenity_ids ? venue.amenity_ids.split(',').map(Number) : []
         });
         setShowEditModal(true);
     };
@@ -95,7 +113,12 @@ const VenueDetails = () => {
                 description: editForm.description,
                 price_per_hour: editForm.pricePerHour,
                 address: editForm.address,
-                city: editForm.city
+                city: editForm.city,
+                amenities: allAmenities
+                    .filter(a => editForm.amenityIds.includes(a.amenity_id))
+                    .map(a => a.name)
+                    .join(", "),
+                amenity_ids: editForm.amenityIds.join(",")
             }));
 
         } catch (error) {
@@ -127,8 +150,20 @@ const VenueDetails = () => {
 
     const handleBlockSubmit = async (e) => {
         e.preventDefault();
+
+        // Validation for recurring
+        if (blockForm.isRecurring) {
+            if (!blockForm.untilDate) {
+                toast.error("Please select an end date for recurrence");
+                return;
+            }
+            if (!blockForm.daysOfWeek || blockForm.daysOfWeek.length === 0) {
+                toast.error("Please select at least one day of the week");
+                return;
+            }
+        }
+
         try {
-            // Calculate end time based on duration
             // Calculate end time based on duration
             const [sh, sm] = blockForm.startTime.split(':').map(Number);
             const startTotalMinutes = sh * 60 + sm;
@@ -138,22 +173,35 @@ const VenueDetails = () => {
             const em = endTotalMinutes % 60;
             const endTimeStr = `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
 
+            const payload = {
+                date: blockForm.date,
+                startTime: blockForm.startTime,
+                endTime: endTimeStr,
+                reason: "Manual block by owner"
+            };
+
+            if (blockForm.isRecurring) {
+                payload.recurrence = {
+                    type: 'recurring',
+                    daysOfWeek: blockForm.daysOfWeek,
+                    untilDate: blockForm.untilDate
+                };
+            }
+
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/block`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({
-                    date: blockForm.date,
-                    startTime: blockForm.startTime,
-                    endTime: endTimeStr,
-                    reason: "Manual block by owner"
-                })
+                body: JSON.stringify(payload)
             });
+
+            const data = await res.json();
+
             if (!res.ok) {
-                const data = await res.json();
                 throw new Error(data.message || "Failed to block slot");
             }
-            toast.success("Slot blocked successfully. Refreshing...");
+
+            toast.success(data.message || "Slot blocked successfully");
 
             // Wait a moment then reload to show updated schedule
             setTimeout(() => {
@@ -287,12 +335,11 @@ const VenueDetails = () => {
                             ) : (
                                 <button
                                     onClick={() => navigate(`/create-booking`, { state: { venue: venue } })}
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-semibold transition bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
                                 >
                                     Book Now
                                 </button>
                             )}
-
-                            {/* ... (Security badges) ... */}
                         </div>
                     </div>
                 </div>
@@ -352,6 +399,30 @@ const VenueDetails = () => {
                                         />
                                     </div>
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
+                                    <div className="grid grid-cols-2 gap-2 border p-3 rounded-lg max-h-40 overflow-y-auto">
+                                        {allAmenities.map((amenity) => (
+                                            <label key={amenity.amenity_id} className="flex items-center space-x-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editForm.amenityIds?.includes(amenity.amenity_id)}
+                                                    onChange={(e) => {
+                                                        const id = amenity.amenity_id;
+                                                        setEditForm(prev => {
+                                                            const newIds = e.target.checked
+                                                                ? [...(prev.amenityIds || []), id]
+                                                                : (prev.amenityIds || []).filter(aid => aid !== id);
+                                                            return { ...prev, amenityIds: newIds };
+                                                        });
+                                                    }}
+                                                    className="rounded text-green-600 focus:ring-green-500"
+                                                />
+                                                <span className="text-sm text-gray-700">{amenity.name}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
@@ -380,7 +451,7 @@ const VenueDetails = () => {
                             <p className="text-sm text-gray-500 mb-4">Prevent bookings for a specific period.</p>
                             <form onSubmit={handleBlockSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Date</label>
+                                    <label className="block text-sm font-medium text-gray-700">Date (Start Date)</label>
                                     <input
                                         type="date"
                                         required
@@ -390,6 +461,71 @@ const VenueDetails = () => {
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2"
                                     />
                                 </div>
+
+                                {/* Recurrence Options */}
+                                <div className="bg-red-50 p-3 rounded-lg border border-red-100">
+                                    <label className="flex items-center space-x-2 cursor-pointer mb-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={blockForm.isRecurring}
+                                            onChange={e => setBlockForm({ ...blockForm, isRecurring: e.target.checked })}
+                                            className="rounded text-red-600 focus:ring-red-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-800">Repeat this block?</span>
+                                    </label>
+
+                                    {blockForm.isRecurring && (
+                                        <div className="space-y-3 animate-fadeIn">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Until Date</label>
+                                                <input
+                                                    type="date"
+                                                    required
+                                                    min={blockForm.date}
+                                                    value={blockForm.untilDate || ''}
+                                                    onChange={e => setBlockForm({ ...blockForm, untilDate: e.target.value })}
+                                                    className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-1"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Repeat On</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {[
+                                                        { label: 'Sun', val: 0 },
+                                                        { label: 'Mon', val: 1 },
+                                                        { label: 'Tue', val: 2 },
+                                                        { label: 'Wed', val: 3 },
+                                                        { label: 'Thu', val: 4 },
+                                                        { label: 'Fri', val: 5 },
+                                                        { label: 'Sat', val: 6 },
+                                                    ].map((day) => (
+                                                        <button
+                                                            key={day.val}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const current = blockForm.daysOfWeek || [];
+                                                                const newDays = current.includes(day.val)
+                                                                    ? current.filter(d => d !== day.val)
+                                                                    : [...current, day.val];
+                                                                setBlockForm({ ...blockForm, daysOfWeek: newDays });
+                                                            }}
+                                                            className={`px-2 py-1 text-xs rounded border transition ${(blockForm.daysOfWeek || []).includes(day.val)
+                                                                ? 'bg-red-600 text-white border-red-600'
+                                                                : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                                                }`}
+                                                        >
+                                                            {day.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                {(blockForm.daysOfWeek || []).length === 0 && (
+                                                    <p className="text-xs text-red-500 mt-1">Select at least one day.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
