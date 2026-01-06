@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet, Shield } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { doesBookingFitInWindow } from "../utils/timeUtil.js";
+import ReviewSection from "../components/ReviewSection";
 
 const CreateBooking = () => {
   const { user, isAuthenticated } = useAuth();
@@ -479,6 +480,8 @@ const CreateBooking = () => {
               </div>
 
             </div>
+
+            <ReviewSection venueId={venue.venue_id} />
           </div>
 
           <div className="lg:col-span-1">
