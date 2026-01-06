@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MapPin, Activity, Shield } from "lucide-react";
 import TimeInput from "../components/TimeInput";
+import ReviewSection from "../components/ReviewSection";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -298,6 +299,7 @@ const VenueDetails = () => {
                                 </div>
                             </div>
                         </div>
+                        {isOwner && <ReviewSection venueId={id} isOwner={true} />}
                     </div>
 
                     {/* Sidebar */}
