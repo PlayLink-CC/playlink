@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { MapPin, Activity, Shield } from "lucide-react";
 import TimeInput from "../components/TimeInput";
 import ReviewSection from "../components/ReviewSection";
+import PricingRulesManager from "../components/PricingRulesManager";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 
@@ -299,7 +300,14 @@ const VenueDetails = () => {
                                 </div>
                             </div>
                         </div>
-                        {isOwner && <ReviewSection venueId={id} isOwner={true} />}
+
+                        {isOwner && (
+                            <>
+                                <PricingRulesManager venueId={id} />
+                                <ReviewSection venueId={id} isOwner={true} />
+                            </>
+                        )}
+                        {!isOwner && <ReviewSection venueId={id} isOwner={false} />}
                     </div>
 
                     {/* Sidebar */}
@@ -595,7 +603,7 @@ const VenueDetails = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

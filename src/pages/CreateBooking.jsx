@@ -32,6 +32,8 @@ const CreateBooking = () => {
   const [timeValidationError, setTimeValidationError] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingAvailableSlots, setLoadingAvailableSlots] = useState(false);
+  const [calculatedPrice, setCalculatedPrice] = useState(null);
+  const [calculatingPrice, setCalculatingPrice] = useState(false);
 
   // Split & Wallet State
   const [inviteQuery, setInviteQuery] = useState("");
@@ -189,10 +191,39 @@ const CreateBooking = () => {
     }
   }, [selectedTime, hours, selectedDate]);
 
+  useEffect(() => {
+    if (!venue || !selectedDate || !selectedTime || !hours) {
+      setCalculatedPrice(null);
+      return;
+    }
+
+    const fetchPrice = async () => {
+      setCalculatingPrice(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/calculate-price`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ venueId: venue.venue_id, date: selectedDate, time: selectedTime, hours: Number(hours) })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCalculatedPrice(data.totalAmount);
+        }
+      } catch (e) { console.error(e); }
+      finally { setCalculatingPrice(false); }
+    };
+    const timer = setTimeout(fetchPrice, 300); // Debounce
+    return () => clearTimeout(timer);
+  }, [venue, selectedDate, selectedTime, hours]);
+
   if (!venue) return null;
 
   // Pricing Calculation
-  const totalPrice = Number(venue.price_per_hour || 0) * Number(hours || 1);
+  const basePrice = Number(venue.price_per_hour || 0) * Number(hours || 1);
+  const totalPrice = calculatedPrice !== null ? calculatedPrice : basePrice;
+  const isDynamic = calculatedPrice !== null && calculatedPrice > basePrice;
+
   const totalPeople = invitees.length + 1;
   const sharePrice = totalPrice / totalPeople;
 
@@ -440,7 +471,11 @@ const CreateBooking = () => {
                 <div className="space-y-2 text-sm text-gray-600 mb-4">
                   <div className="flex justify-between">
                     <span>Venue Total</span>
-                    <span>LKR {totalPrice.toFixed(2)}</span>
+                    <span className="flex flex-col items-end">
+                      {isDynamic && <span className="text-xs text-orange-600 font-bold">Peak Pricing Active</span>}
+                      {calculatingPrice ? "..." : `LKR ${totalPrice.toFixed(2)}`}
+                      {isDynamic && <span className="text-xs text-gray-400 line-through">LKR {basePrice.toFixed(2)}</span>}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Friends Invited</span>
