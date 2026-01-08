@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Star, User } from "lucide-react";
+import { Star, User, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
 const ReviewSection = ({ venueId, isOwner = false }) => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [rating, setRating] = useState(0);
@@ -88,6 +88,44 @@ const ReviewSection = ({ venueId, isOwner = false }) => {
         }
     };
 
+    const handleDeleteReview = async (reviewId) => {
+        if (!confirm("Are you sure you want to delete this review?")) return;
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${venueId}/reviews/${reviewId}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+
+            if (!res.ok) throw new Error("Failed to delete review");
+
+            toast.success("Review deleted successfully");
+            fetchReviews();
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
+    const handleDeleteReply = async (reviewId) => {
+        if (!confirm("Are you sure you want to delete this reply?")) return;
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${venueId}/reviews/${reviewId}/reply`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+
+            if (!res.ok) throw new Error("Failed to delete reply");
+
+            toast.success("Reply deleted successfully");
+            fetchReviews();
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -121,14 +159,36 @@ const ReviewSection = ({ venueId, isOwner = false }) => {
                                     <Star size={16} className="text-yellow-400 fill-yellow-400 mr-1" />
                                     <span className="font-bold text-gray-700">{review.rating}.0</span>
                                 </div>
+                                {isAuthenticated && user?.id === review.user_id && (
+                                    <button
+                                        onClick={() => handleDeleteReview(review.review_id)}
+                                        className="ml-2 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                        title="Delete Review"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                )}
                             </div>
                             <p className="text-gray-600 mt-2 leading-relaxed">{review.comment}</p>
 
                             {/* Owner Reply Display */}
                             {review.owner_reply && (
-                                <div className="mt-4 ml-6 pl-4 border-l-2 border-green-200 bg-green-50 p-3 rounded-r-lg">
-                                    <p className="text-sm font-semibold text-green-800 mb-1">Response from Venue:</p>
-                                    <p className="text-sm text-gray-700">{review.owner_reply}</p>
+                                <div className="mt-4 ml-6 pl-4 border-l-2 border-green-200 bg-green-50 p-3 rounded-r-lg group relative">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="text-sm font-semibold text-green-800 mb-1">Response from Venue:</p>
+                                            <p className="text-sm text-gray-700">{review.owner_reply}</p>
+                                        </div>
+                                        {isOwner && (
+                                            <button
+                                                onClick={() => handleDeleteReply(review.review_id)}
+                                                className="opacity-0 group-hover:opacity-100 p-1 text-gray-400 hover:text-red-500 transition-opacity"
+                                                title="Delete Reply"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
 
