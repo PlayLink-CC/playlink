@@ -184,10 +184,28 @@ const CreateVenue = () => {
                 }
             }
 
+            if (formData.cancellationPolicyId === "custom") {
+                if (!formData.customRefundPercentage || !formData.customHoursBeforeStart) {
+                    toast.error("Please enter both Refund Percentage and Time Limit for custom policy.");
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
+            // Construct description
+            let customDescription = undefined;
+            if (formData.cancellationPolicyId === "custom") {
+                customDescription = `Refund ${formData.customRefundPercentage}% if cancelled within ${formData.customHoursBeforeStart} hours.`;
+            }
+
             const payload = {
                 ...formData,
                 pricePerHour: parseFloat(formData.pricePerHour),
-                cancellationPolicyId: parseInt(formData.cancellationPolicyId),
+                // Send undefined or null if custom, otherwise int
+                cancellationPolicyId: formData.cancellationPolicyId === "custom" ? undefined : parseInt(formData.cancellationPolicyId),
+                customCancellationPolicy: customDescription,
+                customRefundPercentage: formData.cancellationPolicyId === "custom" ? parseInt(formData.customRefundPercentage) : undefined,
+                customHoursBeforeStart: formData.cancellationPolicyId === "custom" ? parseInt(formData.customHoursBeforeStart) : undefined,
                 imageUrls: cleanImages
             };
 
@@ -316,14 +334,71 @@ const CreateVenue = () => {
                                     {policyLoading ? (
                                         <option>Loading policies...</option>
                                     ) : (
-                                        policies.map(p => (
-                                            <option key={p.policy_id} value={p.policy_id}>
-                                                {p.name} (Refund {p.refund_percentage}% {p.hours_before_start > 0 ? `within ${p.hours_before_start} hours` : "anytime"})
-                                            </option>
-                                        ))
+                                        <>
+                                            {policies.map(p => (
+                                                <option key={p.policy_id} value={p.policy_id}>
+                                                    {p.name} (Refund {p.refund_percentage}% {p.hours_before_start > 0 ? `within ${p.hours_before_start} hours` : "anytime"})
+                                                </option>
+                                            ))}
+                                            <option value="custom">Other / Custom</option>
+                                        </>
                                     )}
                                 </select>
                             </div>
+
+                            {formData.cancellationPolicyId === "custom" && (
+                                <div className="animate-fadeIn p-4 bg-gray-50 rounded-lg border border-gray-200 mt-4">
+                                    <h4 className="text-sm font-semibold text-gray-700 mb-3">Custom Policy Rules</h4>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Refund Percentage (%)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="customRefundPercentage"
+                                                min="0"
+                                                max="100"
+                                                value={formData.customRefundPercentage || ""}
+                                                onChange={handleChange}
+                                                className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                placeholder="e.g. 50"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Amount refunded if cancelled late.
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Time Limit (Hours)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="customHoursBeforeStart"
+                                                min="0"
+                                                value={formData.customHoursBeforeStart || ""}
+                                                onChange={handleChange}
+                                                className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                                placeholder="e.g. 24"
+                                            />
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                Hours before booking when this applies.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-3 text-sm text-gray-600 bg-white p-3 rounded border">
+                                        <strong>Preview:</strong>
+                                        {formData.customRefundPercentage && formData.customHoursBeforeStart ? (
+                                            ` Refund ${formData.customRefundPercentage}% if cancelled within ${formData.customHoursBeforeStart} hours of booking.`
+                                        ) : (
+                                            " Enter details to see preview."
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

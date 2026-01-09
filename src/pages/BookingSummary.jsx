@@ -166,8 +166,13 @@ const BookingSummary = () => {
     const start = new Date(booking.booking_start);
     const hoursRemaining = (start - now) / (1000 * 60 * 60);
 
-    const policyHours = booking.hours_before_start || 0;
-    const refundPct = booking.refund_percentage || 0;
+    let policyHours = booking.hours_before_start || 0;
+    let refundPct = booking.refund_percentage || 0;
+
+    if (booking.custom_refund_percentage !== null && booking.custom_refund_percentage !== undefined) {
+      refundPct = booking.custom_refund_percentage;
+      policyHours = booking.custom_hours_before_start || 0;
+    }
 
     let refund = 0;
 
@@ -519,10 +524,17 @@ const BookingSummary = () => {
                     const now = new Date();
                     const start = new Date(cancelModal.booking?.booking_start);
                     const hours = (start - now) / (1000 * 60 * 60);
-                    const policyHours = cancelModal.booking?.hours_before_start || 0;
+
+                    let policyHours = cancelModal.booking?.hours_before_start || 0;
+                    let refundPct = cancelModal.booking?.refund_percentage || 0;
+
+                    if (cancelModal.booking?.custom_refund_percentage !== undefined && cancelModal.booking?.custom_refund_percentage !== null) {
+                      refundPct = cancelModal.booking?.custom_refund_percentage;
+                      policyHours = cancelModal.booking?.custom_hours_before_start || 0;
+                    }
 
                     if (hours > policyHours) return "Early Cancellation (100%)";
-                    return `Late Cancellation (${cancelModal.booking?.refund_percentage || 0}%)`;
+                    return `Late Cancellation (${refundPct}%)`;
                   })()}
                 </span>
               </div>
@@ -535,12 +547,21 @@ const BookingSummary = () => {
                   const now = new Date();
                   const start = new Date(cancelModal.booking?.booking_start);
                   const hours = (start - now) / (1000 * 60 * 60);
-                  const policyHours = cancelModal.booking?.hours_before_start || 0;
+
+                  let policyHours = cancelModal.booking?.hours_before_start || 0;
+                  // Use custom if present
+                  if (cancelModal.booking?.custom_refund_percentage !== undefined && cancelModal.booking?.custom_refund_percentage !== null) {
+                    policyHours = cancelModal.booking?.custom_hours_before_start || 0;
+                  }
 
                   if (hours > policyHours) {
                     return `You are cancelling early (> ${policyHours}h before). You will receive a 100% refund.`;
                   } else {
-                    return `You are within the late cancellation window (<= ${policyHours}h before). You will receive a ${cancelModal.booking?.refund_percentage}% refund.`;
+                    const pct = (cancelModal.booking?.custom_refund_percentage !== undefined && cancelModal.booking?.custom_refund_percentage !== null)
+                      ? cancelModal.booking?.custom_refund_percentage
+                      : (cancelModal.booking?.refund_percentage || 0);
+
+                    return `You are within the late cancellation window (<= ${policyHours}h before). You will receive a ${pct}% refund.`;
                   }
                 })()}
               </p>

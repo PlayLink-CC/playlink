@@ -269,6 +269,26 @@ const VenueDetails = () => {
                             <p className="text-gray-600 leading-relaxed">{venue.description}</p>
                         </div>
 
+                        {/* Cancellation Policy */}
+                        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                            <h2 className="text-2xl font-bold mb-4">Cancellation Policy</h2>
+                            {venue.custom_cancellation_policy ? (
+                                <div>
+                                    <h3 className="font-semibold text-gray-900 mb-2">Custom Policy by Owner</h3>
+                                    <p className="text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                        {venue.custom_cancellation_policy}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <h3 className="font-semibold text-gray-900 mb-2">{venue.policy_name}</h3>
+                                    <p className="text-gray-600">
+                                        Refund {venue.refund_percentage}% if cancelled {venue.hours_before_start > 0 ? `more than ${venue.hours_before_start} hours before start` : "anytime before start"}.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Facilities */}
                         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
                             <h2 className="text-2xl font-bold mb-4">Facilities</h2>

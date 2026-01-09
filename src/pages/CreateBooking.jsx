@@ -505,17 +505,26 @@ const CreateBooking = () => {
                     Cancellation Policy
                   </h3>
                   <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm">
-                    <p className="font-semibold text-red-800 mb-1">{venue.policy_name || "Standard Policy"}</p>
-                    <p className="text-red-700 text-xs">
-                      {venue.refund_percentage ? (
-                        <>
-                          LKR {((totalPrice * (100 - Number(venue.refund_percentage))) / 100).toFixed(2)} penalty if cancelled
-                          {venue.hours_before_start > 0 ? ` within ${venue.hours_before_start} hours of start time.` : " anytime."}
-                        </>
-                      ) : (
-                        "Review policy with venue owner."
-                      )}
-                    </p>
+                    {venue.custom_cancellation_policy ? (
+                      <>
+                        <p className="font-semibold text-red-800 mb-1">Custom Policy</p>
+                        <p className="text-red-700 text-xs">{venue.custom_cancellation_policy}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-semibold text-red-800 mb-1">{venue.policy_name || "Standard Policy"}</p>
+                        <p className="text-red-700 text-xs">
+                          {venue.refund_percentage ? (
+                            <>
+                              LKR {((totalPrice * (100 - Number(venue.refund_percentage))) / 100).toFixed(2)} penalty if cancelled
+                              {venue.hours_before_start > 0 ? ` within ${venue.hours_before_start} hours of start time.` : " anytime."}
+                            </>
+                          ) : (
+                            "Review policy with venue owner."
+                          )}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
