@@ -156,10 +156,60 @@ const VenueCalendar = () => {
         }
     };
 
+    const [selectedBooking, setSelectedBooking] = useState(null);
+
+    const handleSlotClick = (booking, dateStr, timeStr) => {
+        if (booking) {
+            setSelectedBooking(booking);
+        } else {
+            // Future: Walk-in creation logic
+            console.log("Empty slot clicked", dateStr, timeStr);
+        }
+    };
+
+    const handleCancelBooking = async () => {
+        if (!selectedBooking) return;
+
+        if (!confirm("Are you sure you want to cancel this booking? The player will be fully refunded.")) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${selectedBooking.booking_id}/cancel`, {
+                method: "PATCH",
+                credentials: "include",
+            });
+
+            if (res.ok) {
+                toast.success("Booking cancelled and refunded successfully");
+                setSelectedBooking(null);
+                // Refresh calendar
+                // A quick hack is to toggle view or date, but better to refetch.
+                // Triggering refetch by updating a 'refresh' trigger state would be cleaner,
+                // but let's just re-set selectedVenueId to itself or similar effect.
+                const currentV = selectedVenueId;
+                setSelectedVenueId("");
+                setTimeout(() => setSelectedVenueId(currentV), 0);
+            } else {
+                const err = await res.json();
+                toast.error(err.message || "Failed to cancel booking");
+            }
+        } catch (error) {
+            console.error("Error cancelling booking", error);
+            toast.error("Error cancelling booking");
+        }
+    };
+
+    // Helper to format currency
+    const formatCurrency = (amount) => {
+        return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }).format(amount);
+    };
+
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-50 p-6 relative">
             {/* Header Section */}
             <div className="max-w-7xl mx-auto mb-8">
+                {/* ... existing header ... */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Venue Calendar</h1>
@@ -313,12 +363,7 @@ const VenueCalendar = () => {
                                                         <div
                                                             key={dayIdx}
                                                             className={`border-r last:border-0 border-gray-100 ${cellClass}`}
-                                                            onClick={() => {
-                                                                if (!booking) {
-                                                                    // Open Walk-in Modal for this time?
-                                                                    console.log("Empty slot clicked", dateStr, timeStr);
-                                                                }
-                                                            }}
+                                                            onClick={() => handleSlotClick(booking, dateStr, timeStr)}
                                                         >
                                                             {cellContent}
                                                         </div>
@@ -349,6 +394,65 @@ const VenueCalendar = () => {
                     <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">Blocked</span>
                 </div>
             </div>
+
+            {/* Booking Details Modal */}
+            {selectedBooking && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-1">Booking Details</h2>
+                            <p className="text-sm text-gray-500 mb-6">Manage this reservation</p>
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Customer</span>
+                                    <div className="text-right">
+                                        <div className="font-medium text-gray-900">{selectedBooking.customer_name || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500">{selectedBooking.customer_email || selectedBooking.created_by}</div>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Time</span>
+                                    <span className="font-medium text-gray-900">
+                                        {new Date(selectedBooking.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
+                                        {new Date(selectedBooking.booking_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Amount</span>
+                                    <span className="font-medium text-gray-900">{formatCurrency(selectedBooking.total_amount)}</span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Status</span>
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${selectedBooking.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
+                                            selectedBooking.status === 'BLOCKED' ? 'bg-gray-100 text-gray-700' :
+                                                'bg-yellow-100 text-yellow-700'
+                                        }`}>
+                                        {selectedBooking.status}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-8 flex gap-3">
+                                <button
+                                    onClick={() => setSelectedBooking(null)}
+                                    className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                                >
+                                    Close
+                                </button>
+                                {selectedBooking.status !== 'CANCELLED' && (
+                                    <button
+                                        onClick={handleCancelBooking}
+                                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors shadow-sm"
+                                    >
+                                        Cancel Booking
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
