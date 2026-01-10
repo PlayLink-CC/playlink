@@ -26,6 +26,7 @@ import VenueDashboard from "./pages/VenueDashboard";
 import CreateVenue from "./pages/CreateVenue";
 import VenueDetails from "./pages/VenueDetails";
 import Wallet from "./pages/Wallet";
+import VenueCalendar from "./pages/VenueCalendar";
 
 /**
  * App Component - Main application router
@@ -67,6 +68,7 @@ const App = () => {
         {/* Protected Routes for Venue Owners */}
         <Route element={<ProtectedRoute allowedRoles={['VENUE_OWNER']}><MainLayout /></ProtectedRoute>}>
           <Route path="/venue-dashboard" element={<VenueDashboard />} />
+          <Route path="/venue-calendar" element={<VenueCalendar />} />
           <Route path="/create-venue" element={<CreateVenue />} />
         </Route>
 

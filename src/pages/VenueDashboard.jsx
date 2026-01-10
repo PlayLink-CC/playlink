@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, MapPin, Activity } from "lucide-react";
+import { PlusCircle, MapPin, Activity, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
@@ -87,10 +87,16 @@ const VenueDashboard = () => {
                             Manage your venues and bookings from here.
                         </p>
                     </div>
-                    <Link to="/create-venue" className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center transition shadow-md">
-                        <PlusCircle size={20} className="mr-2" />
-                        Add New Venue
-                    </Link>
+                    <div className="flex gap-3">
+                        <Link to="/venue-calendar" className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-6 py-3 rounded-lg font-semibold flex items-center transition shadow-sm">
+                            <Calendar size={20} className="mr-2" />
+                            Calendar
+                        </Link>
+                        <Link to="/create-venue" className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center transition shadow-md">
+                            <PlusCircle size={20} className="mr-2" />
+                            Add New Venue
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Stats */}
