@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, MapPin, Activity, Calendar } from "lucide-react";
+import { PlusCircle, MapPin, Activity, Calendar, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
@@ -73,6 +73,34 @@ const VenueDashboard = () => {
 
     const handleUnblock = (bookingId) => {
         setUnblockModal({ show: true, bookingId });
+    };
+
+    const [cancelModal, setCancelModal] = useState({ show: false, bookingId: null });
+
+    const processCancelBooking = async () => {
+        const bookingId = cancelModal.bookingId;
+        if (!bookingId) return;
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${bookingId}/cancel`, {
+                method: "PATCH",
+                credentials: "include"
+            });
+
+            if (res.ok) {
+                toast.success("Booking cancelled and refunded successfully");
+                setBookings(prev => prev.map(b =>
+                    b.booking_id === bookingId ? { ...b, status: 'CANCELLED' } : b
+                ));
+                setCancelModal({ show: false, bookingId: null });
+            } else {
+                const err = await res.json();
+                toast.error(err.message || "Failed to cancel booking");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error cancelling booking");
+        }
     };
 
     return (
@@ -177,6 +205,7 @@ const VenueDashboard = () => {
                                                 <th className="pb-3 font-medium">Date & Time</th>
                                                 <th className="pb-3 font-medium">Amount</th>
                                                 <th className="pb-3 font-medium">Status</th>
+                                                <th className="pb-3 font-medium w-16"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="text-sm">
@@ -216,6 +245,17 @@ const VenueDashboard = () => {
                                                                     </span>
                                                                 )}
                                                             </div>
+                                                        </td>
+                                                        <td className="py-4">
+                                                            {booking.status !== 'CANCELLED' && (
+                                                                <button
+                                                                    onClick={() => setCancelModal({ show: true, bookingId: booking.booking_id })}
+                                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                                                                    title="Cancel Booking"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -300,6 +340,32 @@ const VenueDashboard = () => {
                                 className="px-5 py-2.5 text-white bg-green-600 hover:bg-green-700 rounded-lg font-medium shadow-md transition"
                             >
                                 Yes, Unblock Slot
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Booking Modal */}
+            {cancelModal.show && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Cancel Booking?</h3>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to cancel this booking? The player will be fully refunded (100%).
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setCancelModal({ show: false, bookingId: null })}
+                                className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition"
+                            >
+                                Back
+                            </button>
+                            <button
+                                onClick={processCancelBooking}
+                                className="px-5 py-2.5 text-white bg-red-600 hover:bg-red-700 rounded-lg font-medium shadow-md transition"
+                            >
+                                Yes, Cancel Booking
                             </button>
                         </div>
                     </div>
