@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Filter, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
@@ -158,20 +158,68 @@ const VenueCalendar = () => {
     };
 
     const [selectedBooking, setSelectedBooking] = useState(null);
+    const [slotActionModal, setSlotActionModal] = useState(null); // { dateStr, timeStr }
+    const [walkInDetails, setWalkInDetails] = useState({
+        customerName: "",
+        customerEmail: "",
+        duration: 1,
+        type: 'WALK_IN' // 'WALK_IN' or 'BLOCK'
+    });
 
     const handleSlotClick = (booking, dateStr, timeStr) => {
         if (booking) {
             setSelectedBooking(booking);
         } else {
-            // Future: Walk-in creation logic
-            console.log("Empty slot clicked", dateStr, timeStr);
+            // Open Action Modal for empty slots
+            setSlotActionModal({ dateStr, timeStr });
+            setWalkInDetails({ ...walkInDetails, type: 'WALK_IN', duration: 1 }); // Reset defaults
+        }
+    };
+
+    const handleCreateWalkIn = async () => {
+        if (!slotActionModal) return;
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/venue/${selectedVenueId}/walk-in`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    date: slotActionModal.dateStr,
+                    time: slotActionModal.timeStr,
+                    hours: walkInDetails.duration,
+                    type: walkInDetails.type,
+                    customerName: walkInDetails.customerName,
+                    customerEmail: walkInDetails.customerEmail
+                }),
+                credentials: "include",
+            });
+
+            if (res.ok) {
+                toast.success(walkInDetails.type === 'WALK_IN' ? "Walk-in booking created!" : "Slot blocked successfully!");
+                setSlotActionModal(null);
+                // Refresh calendar
+                const currentV = selectedVenueId;
+                setSelectedVenueId("");
+                setTimeout(() => setSelectedVenueId(currentV), 0);
+            } else {
+                const err = await res.json();
+                toast.error(err.message || "Failed to create booking");
+            }
+        } catch (error) {
+            console.error("Error creating walk-in", error);
+            toast.error("Error creating booking");
         }
     };
 
     const handleCancelBooking = async () => {
         if (!selectedBooking) return;
 
-        if (!confirm("Are you sure you want to cancel this booking? The player will be fully refunded.")) {
+        const isWalkIn = Number(selectedBooking.total_amount) === 0;
+        const confirmMsg = isWalkIn
+            ? "Are you sure you want to remove this walk-in booking/block? This action cannot be undone."
+            : "Are you sure you want to cancel this booking? The player will be fully refunded.";
+
+        if (!confirm(confirmMsg)) {
             return;
         }
 
@@ -306,7 +354,20 @@ const VenueCalendar = () => {
                         </div>
 
                         <button
-                            onClick={() => toast("Walk-in creation coming soon!")}
+                            onClick={() => {
+                                const now = new Date();
+                                const dateStr = now.toISOString().split('T')[0];
+                                const currentHour = now.getHours();
+                                const timeStr = `${currentHour.toString().padStart(2, '0')}:00`;
+
+                                setSlotActionModal({ dateStr, timeStr });
+                                setWalkInDetails({
+                                    customerName: "",
+                                    customerEmail: "",
+                                    duration: 1,
+                                    type: 'WALK_IN'
+                                });
+                            }}
                             className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center transition shadow-sm whitespace-nowrap"
                         >
                             <Plus size={18} className="mr-2" />
@@ -317,7 +378,12 @@ const VenueCalendar = () => {
             </div>
 
             {/* Calendar Grid */}
-            <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative min-h-[400px]">
+                {loading && (
+                    <div className="absolute inset-0 bg-white/80 z-20 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+                    </div>
+                )}
                 {!['day', 'week'].includes(view) ? (
                     <div className="p-10 text-center text-gray-500">
                         Invalid View
@@ -389,8 +455,12 @@ const VenueCalendar = () => {
                                                                     <span className="block text-xs font-bold text-red-600">Booked</span>
                                                                     {view === 'day' && (
                                                                         <div className="flex flex-col">
-                                                                            <span className="text-xs text-gray-700 font-medium truncate">{booking.customer_name || 'Unknown User'}</span>
-                                                                            <span className="text-[10px] text-gray-500 truncate">{booking.customer_email || `ID: ${booking.created_by}`}</span>
+                                                                            <span className="text-xs text-gray-700 font-medium truncate">
+                                                                                {booking.guest_name || booking.customer_name || 'Unknown User'}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-gray-500 truncate">
+                                                                                {booking.guest_email || booking.customer_email || `ID: ${booking.created_by}`}
+                                                                            </span>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -417,6 +487,116 @@ const VenueCalendar = () => {
                     </div>
                 )}
             </div>
+
+            {/* NEW: Walk-in / Blocking Modal */}
+            {slotActionModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Manage Time Slot</h2>
+
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                    <input
+                                        type="date"
+                                        value={slotActionModal.dateStr}
+                                        onChange={(e) => setSlotActionModal({ ...slotActionModal, dateStr: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                    <input
+                                        type="time"
+                                        value={slotActionModal.timeStr}
+                                        onChange={(e) => setSlotActionModal({ ...slotActionModal, timeStr: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Tabs */}
+                            <div className="flex bg-gray-100 p-1 rounded-lg mb-6">
+                                <button
+                                    onClick={() => setWalkInDetails({ ...walkInDetails, type: 'WALK_IN' })}
+                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${walkInDetails.type === 'WALK_IN' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Add Walk-in
+                                </button>
+                                <button
+                                    onClick={() => setWalkInDetails({ ...walkInDetails, type: 'BLOCK' })}
+                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${walkInDetails.type === 'BLOCK' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Block Slot
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Duration (Hours)</label>
+                                    <select
+                                        value={walkInDetails.duration}
+                                        onChange={(e) => setWalkInDetails({ ...walkInDetails, duration: Number(e.target.value) })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    >
+                                        {[1, 1.5, 2, 2.5, 3, 4, 5].map(h => (
+                                            <option key={h} value={h}>{h} Hour{h > 1 ? 's' : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {walkInDetails.type === 'WALK_IN' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={walkInDetails.customerName}
+                                                onChange={(e) => setWalkInDetails({ ...walkInDetails, customerName: e.target.value })}
+                                                placeholder="John Doe"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email / Contact (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={walkInDetails.customerEmail}
+                                                onChange={(e) => setWalkInDetails({ ...walkInDetails, customerEmail: e.target.value })}
+                                                placeholder="john@example.com"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {walkInDetails.type === 'BLOCK' && (
+                                    <div className="p-3 bg-gray-50 text-gray-600 text-sm rounded-lg border border-gray-200">
+                                        Blocking this slot will make it unavailable for online bookings. You can unblock it later by cancelling the block.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-8 flex gap-3">
+                                <button
+                                    onClick={() => setSlotActionModal(null)}
+                                    className="flex-1 px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleCreateWalkIn}
+                                    className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors shadow-sm ${walkInDetails.type === 'WALK_IN' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-800 hover:bg-gray-900'
+                                        }`}
+                                >
+                                    {walkInDetails.type === 'WALK_IN' ? 'Confirm Booking' : 'Block Slot'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Legend */}
             <div className="max-w-7xl mx-auto mt-6 flex gap-8">
@@ -446,8 +626,8 @@ const VenueCalendar = () => {
                                 <div className="flex justify-between py-2 border-b border-gray-100">
                                     <span className="text-gray-500">Customer</span>
                                     <div className="text-right">
-                                        <div className="font-medium text-gray-900">{selectedBooking.customer_name || 'N/A'}</div>
-                                        <div className="text-xs text-gray-500">{selectedBooking.customer_email || selectedBooking.created_by}</div>
+                                        <div className="font-medium text-gray-900">{selectedBooking.guest_name || selectedBooking.customer_name || 'N/A'}</div>
+                                        <div className="text-xs text-gray-500">{selectedBooking.guest_email || selectedBooking.customer_email || selectedBooking.created_by}</div>
                                     </div>
                                 </div>
                                 <div className="flex justify-between py-2 border-b border-gray-100">
