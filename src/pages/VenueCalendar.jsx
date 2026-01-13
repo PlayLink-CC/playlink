@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Filter, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
 const VenueCalendar = () => {
     const { user } = useAuth();
+    const dateInputRef = useRef(null);
     const [view, setView] = useState("week"); // 'day', 'week', 'month'
     const [currentDate, setCurrentDate] = useState(new Date());
     const [venues, setVenues] = useState([]);
@@ -240,9 +241,47 @@ const VenueCalendar = () => {
                         <button onClick={() => navigateDate(-1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 border border-gray-200">
                             <ChevronLeft size={20} />
                         </button>
-                        <span className="text-lg font-bold text-gray-800 w-48 text-center">
-                            {formatDateRange()}
-                        </span>
+                        <div className="relative flex items-center justify-center group">
+                            <span
+                                onClick={() => dateInputRef.current?.showPicker()}
+                                className="cursor-pointer hover:bg-gray-100 rounded-lg px-3 py-1.5 transition-colors select-none flex items-center justify-center gap-3"
+                            >
+                                <div className="text-center">
+                                    {view === 'day' ? (
+                                        <>
+                                            <div className="text-gray-900 font-bold text-lg leading-tight">
+                                                {currentDate.toLocaleDateString('en-US', { weekday: 'long' })}
+                                            </div>
+                                            <div className="text-gray-500 text-sm font-medium leading-tight">
+                                                {currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-lg font-bold text-gray-800 whitespace-nowrap">
+                                            {formatDateRange()}
+                                        </div>
+                                    )}
+                                </div>
+                                <CalendarIcon size={16} className="text-gray-400 group-hover:text-green-600 transition-colors" />
+                            </span>
+                            <input
+                                type="date"
+                                ref={dateInputRef}
+                                className="absolute inset-0 opacity-0 pointer-events-none w-0 h-0"
+                                value={(() => {
+                                    // Format current date as YYYY-MM-DD for input
+                                    const d = new Date(currentDate);
+                                    const offset = d.getTimezoneOffset() * 60000;
+                                    return new Date(d.getTime() - offset).toISOString().split('T')[0];
+                                })()}
+                                onChange={(e) => {
+                                    if (e.target.value) {
+                                        const [y, m, d] = e.target.value.split('-').map(Number);
+                                        setCurrentDate(new Date(y, m - 1, d));
+                                    }
+                                }}
+                            />
+                        </div>
                         <button onClick={() => navigateDate(1)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 border border-gray-200">
                             <ChevronRight size={20} />
                         </button>
@@ -425,8 +464,9 @@ const VenueCalendar = () => {
                                 <div className="flex justify-between py-2 border-b border-gray-100">
                                     <span className="text-gray-500">Status</span>
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${selectedBooking.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
-                                            selectedBooking.status === 'BLOCKED' ? 'bg-gray-100 text-gray-700' :
-                                                'bg-yellow-100 text-yellow-700'
+
+                                        selectedBooking.status === 'BLOCKED' ? 'bg-gray-100 text-gray-700' :
+                                            'bg-yellow-100 text-yellow-700'
                                         }`}>
                                         {selectedBooking.status}
                                     </span>
