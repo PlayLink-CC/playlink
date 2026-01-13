@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { PlusCircle, MapPin, Activity, Calendar, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const VenueDashboard = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState({ total_bookings: 0, total_revenue: 0, active_venues: 0 });
+    const [analytics, setAnalytics] = useState({ revenueByVenue: [], monthlyRevenue: [] });
     const [bookings, setBookings] = useState([]);
     const [venues, setVenues] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -28,6 +30,14 @@ const VenueDashboard = () => {
                 if (bookingsRes.ok) {
                     const data = await bookingsRes.json();
                     setBookings(data.bookings || []);
+                }
+
+                const analyticsRes = await fetch(`${import.meta.env.VITE_API_URL}/api/analytics/owner/detailed`, {
+                    credentials: "include",
+                });
+                if (analyticsRes.ok) {
+                    const data = await analyticsRes.json();
+                    setAnalytics(data);
                 }
 
                 const venuesRes = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/my-venues`, {
@@ -146,6 +156,60 @@ const VenueDashboard = () => {
                 </div>
 
 
+
+                {/* Analytics Charts */}
+                {analytics.revenueByVenue && analytics.revenueByVenue.length > 0 && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+                        {/* Revenue by Venue */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h2 className="text-lg font-bold text-gray-900 mb-6">Revenue by Venue</h2>
+                            <div className="h-80">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={analytics.revenueByVenue}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="venue_name" axisLine={false} tickLine={false} />
+                                        <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `LKR ${value}`} />
+                                        <RechartsTooltip formatter={(value) => `LKR ${Number(value).toLocaleString()}`} />
+                                        <Bar dataKey="value" fill="#16a34a" radius={[4, 4, 0, 0]} name="Revenue" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Monthly Revenue Trend */}
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                            <h2 className="text-lg font-bold text-gray-900 mb-6">Monthly Revenue Trend</h2>
+                            <div className="h-80">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={(() => {
+                                        const grouped = {};
+                                        analytics.monthlyRevenue?.forEach(item => {
+                                            if (!grouped[item.month]) grouped[item.month] = { name: item.month };
+                                            grouped[item.month][item.venue_name] = Number(item.revenue);
+                                        });
+                                        return Object.values(grouped);
+                                    })()}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                                        <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `LKR ${value}`} />
+                                        <RechartsTooltip formatter={(value) => `LKR ${Number(value).toLocaleString()}`} />
+                                        <Legend />
+                                        {Array.from(new Set(analytics.monthlyRevenue?.map(i => i.venue_name))).map((venueName, index) => (
+                                            <Line
+                                                key={venueName}
+                                                type="monotone"
+                                                dataKey={venueName}
+                                                stroke={['#16a34a', '#2563eb', '#dc2626', '#d97706', '#9333ea'][index % 5]}
+                                                strokeWidth={2}
+                                                dot={false}
+                                            />
+                                        ))}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Venues List */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-10">
