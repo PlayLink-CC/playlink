@@ -1,9 +1,35 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, MapPin, Activity, Calendar, Trash2 } from "lucide-react";
+
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white p-4 border border-gray-100 shadow-lg rounded-lg max-w-xs">
+                <p className="text-gray-900 font-bold mb-2">{label}</p>
+                {payload.map((entry, index) => (
+                    entry.name !== 'Bookings' && (
+                        <div key={index} className="flex justify-between items-center gap-4 mb-1">
+                            <span style={{ color: entry.color }} className="text-sm font-medium">{entry.name}:</span>
+                            <span className="text-gray-700 text-sm">LKR {Number(entry.value).toLocaleString()}</span>
+                        </div>
+                    )
+                ))}
+
+                {/* Find bookings payload if it exists */}
+                {payload.find(p => p.name === 'Bookings') && (
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-gray-500 text-xs">Total Bookings: {payload.find(p => p.name === 'Bookings').value}</p>
+                    </div>
+                )}
+            </div>
+        );
+    }
+    return null;
+};
+import { PlusCircle, MapPin, Activity, Calendar, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart } from 'recharts';
 
 const VenueDashboard = () => {
     const { user } = useAuth();
@@ -12,6 +38,9 @@ const VenueDashboard = () => {
     const [bookings, setBookings] = useState([]);
     const [venues, setVenues] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const [reportFilters, setReportFilters] = useState({ interval: 'daily', venueId: '', startDate: '', endDate: '' });
+    const [reportData, setReportData] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -57,7 +86,36 @@ const VenueDashboard = () => {
         if (user) fetchData();
     }, [user]);
 
+    useEffect(() => {
+        const fetchReport = async () => {
+            if (!user) return;
+            try {
+                const queryParams = new URLSearchParams({
+                    interval: reportFilters.interval,
+                    ...(reportFilters.venueId && { venueId: reportFilters.venueId }),
+                    ...(reportFilters.startDate && { startDate: reportFilters.startDate }),
+                    ...(reportFilters.endDate && { endDate: reportFilters.endDate })
+                });
+
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/analytics/owner/report?${queryParams}`, {
+                    credentials: "include"
+                });
+
+                if (res.ok) {
+                    let data = await res.json();
+                    data = processChartData(data, reportFilters.interval, reportFilters.startDate, reportFilters.endDate, venues);
+                    setReportData(data);
+                }
+            } catch (error) {
+                console.error("Error fetching report", error);
+            }
+        };
+
+        if (venues.length > 0) fetchReport(); // Only fetch when venues are loaded
+    }, [user, reportFilters, venues]);
+
     const [unblockModal, setUnblockModal] = useState({ show: false, bookingId: null });
+    const [peakTimeFilter, setPeakTimeFilter] = useState('weekday');
 
     const processUnblock = async () => {
         const bookingId = unblockModal.bookingId;
@@ -111,6 +169,123 @@ const VenueDashboard = () => {
             console.error(e);
             toast.error("Error cancelling booking");
         }
+    };
+
+    const processChartData = (data, interval, startStr, endStr, allVenues) => {
+        // 1. Pivot the data: Group by label -> { label, venue1: rev, venue2: rev... }
+        const pivotedMap = new Map();
+
+        data.forEach(row => {
+            if (!pivotedMap.has(row.label)) {
+                pivotedMap.set(row.label, { label: row.label, booking_count: 0 }); // Initialize
+            }
+            const entry = pivotedMap.get(row.label);
+            entry[row.venue_name] = Number(row.revenue);
+            entry.booking_count += row.booking_count; // Aggregate total bookings? Or keep per venue? Let's aggregate for the line.
+        });
+
+        // 2. Fill gaps in date range
+        if (interval === 'weekly') {
+            // Return pivoted data values sorted by label if manual weekly filling is too complex for now
+            return Array.from(pivotedMap.values());
+        }
+
+        const filled = [];
+        let start, end;
+        const now = new Date();
+
+        if (startStr && endStr) {
+            start = new Date(startStr);
+            end = new Date(endStr);
+        } else {
+            if (interval === 'monthly') {
+                start = new Date(now.getFullYear(), 0, 1);
+                end = new Date(now.getFullYear(), 11, 31);
+            } else { // daily
+                start = new Date();
+                start.setDate(now.getDate() - 30);
+                end = new Date();
+            }
+        }
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+
+        const current = new Date(start);
+
+        // Venues default object to zero-fill
+        const zeroFilledVenues = {};
+        allVenues.forEach(v => {
+            zeroFilledVenues[v.venue_name] = 0;
+        });
+
+        let safety = 0;
+        while (current <= end && safety < 3000) {
+            safety++;
+            let label = "";
+
+            if (interval === 'monthly') {
+                const y = current.getFullYear();
+                const m = String(current.getMonth() + 1).padStart(2, '0');
+                label = `${y}-${m}`;
+            } else {
+                const y = current.getFullYear();
+                const m = String(current.getMonth() + 1).padStart(2, '0');
+                const d = String(current.getDate()).padStart(2, '0');
+                const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                const dayName = days[current.getDay()];
+                label = `${y}-${m}-${d} (${dayName})`;
+            }
+
+            if (pivotedMap.has(label)) {
+                // Merge existing data with zero-defaults to ensure all venues exist
+                filled.push({ ...zeroFilledVenues, ...pivotedMap.get(label) });
+            } else {
+                filled.push({
+                    label: label,
+                    booking_count: 0,
+                    ...zeroFilledVenues
+                });
+            }
+
+            // Increment
+            if (interval === 'monthly') {
+                current.setMonth(current.getMonth() + 1);
+            } else {
+                current.setDate(current.getDate() + 1);
+            }
+        }
+        return filled;
+    };
+
+    const handleDateNavigation = (direction) => {
+        let { startDate, endDate, interval } = reportFilters;
+        let start = startDate ? new Date(startDate) : new Date();
+        let end = endDate ? new Date(endDate) : new Date();
+
+        if (!startDate || !endDate) {
+            // Initialize defaults if not set
+            end = new Date();
+            start = new Date();
+            if (interval === 'daily') start.setDate(end.getDate() - 30);
+            else if (interval === 'weekly') start.setDate(end.getDate() - 84); // 12 weeks
+            else start.setFullYear(end.getFullYear() - 1);
+        }
+
+        const diffTime = end.getTime() - start.getTime();
+
+        if (direction === -1) {
+            start = new Date(start.getTime() - diffTime);
+            end = new Date(end.getTime() - diffTime);
+        } else {
+            start = new Date(start.getTime() + diffTime);
+            end = new Date(end.getTime() + diffTime);
+        }
+
+        setReportFilters({
+            ...reportFilters,
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0]
+        });
     };
 
     return (
@@ -178,38 +353,281 @@ const VenueDashboard = () => {
 
                         {/* Monthly Revenue Trend */}
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-bold text-gray-900 mb-6">Monthly Revenue Trend</h2>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-lg font-bold text-gray-900">Peak Booking Times (Last 30 Days)</h2>
+                                <div className="flex bg-gray-100 p-1 rounded-lg">
+                                    <button
+                                        onClick={() => setPeakTimeFilter('weekday')}
+                                        className={`px-3 py-1 text-sm font-medium rounded-md transition ${peakTimeFilter === 'weekday' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        Weekday
+                                    </button>
+                                    <button
+                                        onClick={() => setPeakTimeFilter('weekend')}
+                                        className={`px-3 py-1 text-sm font-medium rounded-md transition ${peakTimeFilter === 'weekend' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        Weekend
+                                    </button>
+                                </div>
+                            </div>
                             <div className="h-80">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={(() => {
-                                        const grouped = {};
-                                        analytics.monthlyRevenue?.forEach(item => {
-                                            if (!grouped[item.month]) grouped[item.month] = { name: item.month };
-                                            grouped[item.month][item.venue_name] = Number(item.revenue);
+                                    <BarChart data={(() => {
+                                        // 1. Pivot data: { hour: 7, VenueA: 5, VenueB: 2, ... }
+                                        // Restrict to hours 7 to 23
+                                        const hours = Array.from({ length: 17 }, (_, i) => {
+                                            const h = i + 7;
+                                            const row = { hour: h };
+                                            // Init venues with 0
+                                            venues.forEach(v => row[v.venue_name] = 0);
+                                            return row;
                                         });
-                                        return Object.values(grouped);
+
+                                        analytics.peakHours?.forEach(item => {
+                                            // Filter by selected day type
+                                            if (item.day_type === peakTimeFilter) {
+                                                const h = item.hour_of_day;
+                                                if (h >= 7 && h <= 23) {
+                                                    const rowIndex = h - 7;
+                                                    if (hours[rowIndex]) {
+                                                        // Aggregate because multiple rows might exist due to day_type group if we didn't filter? 
+                                                        // Actually sql groups by day_type too so we get unique rows per (hour, venue, day_type)
+                                                        hours[rowIndex][item.venue_name] = item.booking_count;
+                                                    }
+                                                }
+                                            }
+                                        });
+                                        return hours;
                                     })()}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                                        <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `LKR ${value}`} />
-                                        <RechartsTooltip formatter={(value) => `LKR ${Number(value).toLocaleString()}`} />
+                                        <XAxis
+                                            dataKey="hour"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tickFormatter={(h) => {
+                                                const d = new Date();
+                                                d.setHours(h);
+                                                return d.toLocaleTimeString([], { hour: 'numeric', hour12: true });
+                                            }}
+                                        />
+                                        <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+                                        <RechartsTooltip
+                                            cursor={{ fill: '#f3f4f6' }}
+                                            content={({ active, payload, label }) => {
+                                                if (active && payload && payload.length) {
+                                                    const h = payload[0].payload.hour;
+                                                    const d = new Date(); d.setHours(h);
+                                                    const timeStr = d.toLocaleTimeString([], { hour: 'numeric', hour12: true });
+                                                    return (
+                                                        <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-lg max-w-xs">
+                                                            <span className="font-bold text-gray-900 block mb-2">{timeStr}</span>
+                                                            {payload.map((entry, index) => (
+                                                                <div key={index} className="flex justify-between items-center gap-4 mb-1">
+                                                                    <span style={{ color: entry.color }} className="text-sm font-medium">{entry.name}:</span>
+                                                                    <span className="text-gray-700 text-sm font-bold">{entry.value}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
                                         <Legend />
-                                        {Array.from(new Set(analytics.monthlyRevenue?.map(i => i.venue_name))).map((venueName, index) => (
-                                            <Line
-                                                key={venueName}
-                                                type="monotone"
-                                                dataKey={venueName}
-                                                stroke={['#16a34a', '#2563eb', '#dc2626', '#d97706', '#9333ea'][index % 5]}
-                                                strokeWidth={2}
-                                                dot={false}
+                                        {venues.map((venue, index) => (
+                                            <Bar
+                                                key={venue.venue_id}
+                                                dataKey={venue.venue_name}
+                                                fill={['#2563eb', '#16a34a', '#dc2626', '#d97706', '#9333ea'][index % 5]}
+                                                radius={[4, 4, 0, 0]}
+                                                name={venue.venue_name}
+                                            // stackId="a" // Uncomment if you want them stacked
                                             />
                                         ))}
-                                    </LineChart>
+                                    </BarChart>
                                 </ResponsiveContainer>
                             </div>
                         </div>
                     </div>
                 )}
+
+                {/* Detailed Revenue Report */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-10">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <h2 className="text-xl font-bold text-gray-900">Revenue Reports</h2>
+                        <div className="flex flex-wrap items-center gap-4">
+                            {/* Navigation */}
+                            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                                <button onClick={() => handleDateNavigation(-1)} className="p-1 hover:bg-white rounded-md transition shadow-sm">
+                                    <ChevronLeft size={18} className="text-gray-600" />
+                                </button>
+                                <button onClick={() => handleDateNavigation(1)} className="p-1 hover:bg-white rounded-md transition shadow-sm">
+                                    <ChevronRight size={18} className="text-gray-600" />
+                                </button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">From:</span>
+                                <input
+                                    type="date"
+                                    className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+                                    value={reportFilters.startDate}
+                                    onChange={(e) => {
+                                        const newStart = e.target.value;
+                                        const newEnd = reportFilters.endDate;
+                                        let newInterval = reportFilters.interval;
+
+                                        if (newStart && newEnd) {
+                                            const diffTime = Math.abs(new Date(newEnd) - new Date(newStart));
+                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                            if (diffDays <= 30) {
+                                                newInterval = 'daily';
+                                            }
+                                        }
+                                        setReportFilters({ ...reportFilters, startDate: newStart, interval: newInterval });
+                                    }}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-500">To:</span>
+                                <input
+                                    type="date"
+                                    className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+                                    value={reportFilters.endDate}
+                                    onChange={(e) => {
+                                        const newStart = reportFilters.startDate;
+                                        const newEnd = e.target.value;
+                                        let newInterval = reportFilters.interval;
+
+                                        if (newStart && newEnd) {
+                                            const diffTime = Math.abs(new Date(newEnd) - new Date(newStart));
+                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                            if (diffDays <= 30) {
+                                                newInterval = 'daily';
+                                            }
+                                        }
+                                        setReportFilters({ ...reportFilters, endDate: newEnd, interval: newInterval });
+                                    }}
+                                />
+                            </div>
+                            <div className="w-px h-8 bg-gray-300 mx-2 hidden md:block"></div>
+                            <select
+                                className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+                                value={reportFilters.venueId}
+                                onChange={(e) => setReportFilters({ ...reportFilters, venueId: e.target.value })}
+                            >
+                                <option value="">All Venues</option>
+                                {venues.map(v => (
+                                    <option key={v.venue_id} value={v.venue_id}>{v.venue_name}</option>
+                                ))}
+                            </select>
+                            <select
+                                className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:ring-green-500 focus:border-green-500"
+                                value={reportFilters.interval}
+                                onChange={(e) => setReportFilters({ ...reportFilters, interval: e.target.value })}
+                            >
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="h-96 w-full">
+                        {reportData.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                {(() => {
+                                    // Colors for venues
+                                    const colors = ['#2563eb', '#16a34a', '#dc2626', '#d97706', '#9333ea', '#0891b2', '#be185d'];
+
+                                    // Logic to determine which venues to show
+                                    const visibleVenues = reportFilters.venueId
+                                        ? venues.filter(v => v.venue_id === Number(reportFilters.venueId))
+                                        : venues;
+
+                                    if (reportFilters.interval === 'monthly') {
+                                        return (
+                                            <LineChart data={reportData}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                <XAxis
+                                                    dataKey="label"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tickFormatter={(val) => {
+                                                        if (!val) return "";
+                                                        const [y, m] = val.split('-');
+                                                        const date = new Date(Number(y), Number(m) - 1);
+                                                        return date.toLocaleDateString('en-US', { month: 'short' });
+                                                    }}
+                                                />
+                                                <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `LKR ${value}`} />
+                                                <RechartsTooltip content={<CustomTooltip />} />
+                                                <Legend />
+                                                {visibleVenues.map((venue, index) => (
+                                                    <Line
+                                                        key={venue.venue_id}
+                                                        type="monotone"
+                                                        dataKey={venue.venue_name}
+                                                        stroke={colors[index % colors.length]}
+                                                        strokeWidth={3}
+                                                        dot={{ r: 4 }}
+                                                        activeDot={{ r: 8 }}
+                                                    />
+                                                ))}
+                                            </LineChart>
+                                        );
+                                    } else {
+                                        return (
+                                            <ComposedChart data={reportData}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                                <XAxis
+                                                    dataKey="label"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    scale="point"
+                                                    padding={{ left: 10, right: 10 }}
+                                                    tickFormatter={(val) => {
+                                                        if (!val) return "";
+                                                        if (val.includes('(')) {
+                                                            const parts = val.split(' ');
+                                                            const datePart = parts[0];
+                                                            const dayName = parts[1].replace(/[()]/g, '');
+                                                            const [, , d] = datePart.split('-');
+                                                            return `${dayName} ${d}`;
+                                                        }
+                                                        return val;
+                                                    }}
+                                                />
+                                                <YAxis yAxisId="left" orientation="left" stroke="#374151" allowDecimals={false} />
+                                                <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => `LKR ${value}`} stroke="#16a34a" />
+                                                <RechartsTooltip content={<CustomTooltip />} />
+                                                <Legend />
+                                                {visibleVenues.map((venue, index) => (
+                                                    <Bar
+                                                        key={venue.venue_id}
+                                                        yAxisId="right"
+                                                        dataKey={venue.venue_name}
+                                                        fill={colors[index % colors.length]}
+                                                        radius={[4, 4, 0, 0]}
+                                                        name={venue.venue_name}
+                                                        // Convert stackId to string or remove if you don't want stacked
+                                                        stackId="a"
+                                                        barSize={20}
+                                                    />
+                                                ))}
+                                                <Line yAxisId="left" type="monotone" dataKey="booking_count" stroke="#1f2937" strokeWidth={2} dot={{ r: 4 }} name="Bookings" />
+                                            </ComposedChart>
+                                        );
+                                    }
+                                })()}
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-gray-500 border-2 border-dashed border-gray-200 rounded-xl">
+                                No revenue data for this period
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {/* Venues List */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-10">
