@@ -431,19 +431,44 @@ const CreateBooking = () => {
                     <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
                       {searchingUsers ? (
                         <div className="p-3 text-sm text-gray-500">Searching...</div>
-                      ) : searchResults.length > 0 ? (
-                        searchResults.map(u => (
-                          <button
-                            key={u.user_id}
-                            onClick={() => handleAddInvitee(u)}
-                            className="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col"
-                          >
-                            <span className="font-medium text-gray-800">{u.full_name}</span>
-                            <span className="text-xs text-gray-500">{u.email}</span>
-                          </button>
-                        ))
                       ) : (
-                        <div className="p-3 text-sm text-gray-500">No users found</div>
+                        <>
+                          {/* Existing Users */}
+                          {searchResults.map(u => (
+                            <button
+                              key={u.user_id}
+                              onClick={() => handleAddInvitee(u)}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col border-b last:border-b-0"
+                            >
+                              <span className="font-medium text-gray-800">{u.full_name}</span>
+                              <span className="text-xs text-gray-500">{u.email}</span>
+                            </button>
+                          ))}
+
+                          {/* Invite as Guest Option */}
+                          {inviteQuery.includes('@') && inviteQuery.includes('.') &&
+                            !searchResults.some(u => u.email === inviteQuery) &&
+                            !invitees.some(i => i.email === inviteQuery) && (
+                              <button
+                                onClick={() => handleAddInvitee({
+                                  user_id: `guest-${Date.now()}`,
+                                  full_name: 'Guest User',
+                                  email: inviteQuery,
+                                  isGuest: true
+                                })}
+                                className="w-full text-left px-4 py-2 hover:bg-green-50 flex items-center text-green-700"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">Invite "{inviteQuery}"</span>
+                                  <span className="text-xs opacity-75">Send email invitation</span>
+                                </div>
+                              </button>
+                            )}
+
+                          {searchResults.length === 0 && !inviteQuery.includes('@') && (
+                            <div className="p-3 text-sm text-gray-500">No users found</div>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
@@ -453,8 +478,8 @@ const CreateBooking = () => {
                 {invitees.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4">
                     {invitees.map(invitee => (
-                      <div key={invitee.user_id} className="flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm">
-                        <span>{invitee.full_name}</span>
+                      <div key={invitee.user_id} className="flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm border border-green-100">
+                        <span>{invitee.isGuest ? invitee.email : invitee.full_name}</span>
                         <button onClick={() => handleRemoveInvitee(invitee.user_id)} className="ml-2 hover:text-red-500">
                           <X size={14} />
                         </button>
