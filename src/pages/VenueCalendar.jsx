@@ -642,6 +642,14 @@ const VenueCalendar = () => {
                                     <span className="font-medium text-gray-900">{formatCurrency(selectedBooking.total_amount)}</span>
                                 </div>
                                 <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Sport</span>
+                                    <span className="font-medium text-gray-900">{selectedBooking.sport_name || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Court</span>
+                                    <span className="font-medium text-gray-900">{selectedBooking.court_name || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-100">
                                     <span className="text-gray-500">Status</span>
                                     <span className={`px-2 py-0.5 rounded text-xs font-bold ${selectedBooking.status === 'CONFIRMED' ? 'bg-green-100 text-green-700' :
 

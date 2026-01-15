@@ -393,6 +393,12 @@ const BookingSummary = () => {
                         {endTime}
                       </p>
                       <p>
+                        <span className="font-medium">Sport:</span> {b.sport_name}
+                      </p>
+                      <p>
+                        <span className="font-medium">Court:</span> {b.court_name}
+                      </p>
+                      <p>
                         <span className="font-medium">Location:</span>{" "}
                         {b.venue_address || ""}{" "}
                         {b.venue_city && `• ${b.venue_city}`}
