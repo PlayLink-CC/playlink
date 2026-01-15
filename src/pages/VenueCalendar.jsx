@@ -198,7 +198,12 @@ const VenueCalendar = () => {
         } else {
             // Open Action Modal for empty slots
             setSlotActionModal({ dateStr, timeStr });
-            setWalkInDetails({ ...walkInDetails, type: 'WALK_IN', duration: 1 }); // Reset defaults
+            setWalkInDetails({
+                ...walkInDetails,
+                type: 'WALK_IN',
+                duration: 1,
+                sportId: selectedSportId === "all" ? "" : selectedSportId
+            }); // Reset defaults
         }
     };
 
@@ -408,7 +413,8 @@ const VenueCalendar = () => {
                                     customerName: "",
                                     customerEmail: "",
                                     duration: 1,
-                                    type: 'WALK_IN'
+                                    type: 'WALK_IN',
+                                    sportId: selectedSportId === "all" ? "" : selectedSportId
                                 });
                             }}
                             className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center transition shadow-sm whitespace-nowrap"

@@ -702,7 +702,7 @@ const VenueDashboard = () => {
                                                             <div className="text-xs text-gray-400">{booking.customer_email}</div>
                                                         </td>
                                                         <td className="py-4 text-gray-600">
-                                                            <span className="font-medium">{booking.sport_name}</span>
+                                                            <span className="font-medium">{booking.sport_name || 'N/A'}</span>
                                                         </td>
                                                         <td className="py-4 text-gray-600">
                                                             {new Date(booking.booking_start).toLocaleDateString()} <br />
