@@ -16,6 +16,7 @@ const SignUpPage = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [city, setCity] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -39,6 +40,11 @@ const SignUpPage = () => {
 
     if (!password.trim()) {
       toast.error("Please enter a password.");
+      return;
+    }
+
+    if (!city) {
+      toast.error("Please select your city.");
       return;
     }
 
@@ -79,6 +85,7 @@ const SignUpPage = () => {
             fullName,
             email,
             password,
+            city,
             accountType: isVenueOwner ? "VENUE_OWNER" : "USER",
           }),
         }
@@ -163,6 +170,32 @@ const SignUpPage = () => {
               <p className="text-xs text-gray-500 mt-1">
                 We'll use this for account verification and notifications
               </p>
+            </div>
+
+            {/* City Selection */}
+            <div className="mb-4">
+              <label
+                htmlFor="city"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                City
+              </label>
+              <select
+                id="city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition bg-white"
+              >
+                <option value="">Select your city</option>
+                <option value="Colombo">Colombo</option>
+                <option value="Kandy">Kandy</option>
+                <option value="Galle">Galle</option>
+                <option value="Negombo">Negombo</option>
+                <option value="Matara">Matara</option>
+                <option value="Jaffna">Jaffna</option>
+                <option value="Gampaha">Gampaha</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
             {/* Password */}

@@ -33,6 +33,9 @@ import { useNavigate } from "react-router-dom";
 
 const Home = () => {
   const [venues, setVenues] = useState([]);
+  const [recommendedVenues, setRecommendedVenues] = useState([]);
+  const [recType, setRecType] = useState('trending');
+  const [userCity, setUserCity] = useState(null);
 
   const fetchVenues = async () => {
     try {
@@ -46,8 +49,38 @@ const Home = () => {
     }
   };
 
+  const fetchRecommendations = async (lat = null, lon = null) => {
+    try {
+      let url = `${import.meta.env.VITE_API_URL}/api/venues/recommendations`;
+      if (lat && lon) {
+        url += `?lat=${lat}&lon=${lon}`;
+      }
+      const res = await axios.get(url, { withCredentials: true });
+      setRecommendedVenues(res.data.venues);
+      setRecType(res.data.type);
+      setUserCity(res.data.city);
+    } catch (err) {
+      console.error("Error fetching recommendations:", err);
+    }
+  };
+
   useEffect(() => {
     fetchVenues();
+
+    // Check for GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          fetchRecommendations(latitude, longitude);
+        },
+        () => {
+          fetchRecommendations(); // Fallback to city-based or trending
+        }
+      );
+    } else {
+      fetchRecommendations();
+    }
   }, []);
 
   const navigate = useNavigate();
@@ -122,6 +155,77 @@ const Home = () => {
           navigate("/venues", { state: { filters: { sport: sportNameOrNull } } });
         }}
       />
+
+      {/* Recommended Venues */}
+      {recommendedVenues.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900">
+                {recType === 'personalized' ? `Recommended for You in ${userCity}` :
+                  recType === 'city' ? `Top Picks in ${userCity}` :
+                    recType === 'mixed' ? `Best in ${userCity} & More` :
+                      'Recommended for You'}
+              </h2>
+              <p className="text-gray-500 mt-1">
+                {recType === 'personalized' ? `Based on your favorite sports in ${userCity}` :
+                  recType === 'city' ? `Personalized based on your location` :
+                    'Curated sports venues you might like'}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate("/venues")}
+              className="text-green-600 font-semibold hover:text-green-700 transition"
+            >
+              View All
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {recommendedVenues.map((venue) => (
+              <div
+                key={venue.venue_id}
+                onClick={() => handleBookNow(venue)}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:scale-[1.02] transition duration-300 overflow-hidden cursor-pointer"
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={venue.primary_image}
+                    alt={venue.venue_name}
+                    className="w-full h-full object-cover"
+                  />
+                  {recType === 'city' && venue.location.includes(userCity) && (
+                    <div className="absolute top-3 left-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center shadow-sm">
+                      <MapPin size={12} className="mr-1" /> Near You
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-4">
+                  <h3 className="font-bold text-lg text-gray-900 mb-1 truncate">
+                    {venue.venue_name}
+                  </h3>
+
+                  <div className="flex items-center text-gray-500 mb-2">
+                    <MapPin size={14} className="mr-1 flex-shrink-0" />
+                    <span className="text-xs truncate">{venue.location}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between mt-4 pb-1">
+                    <div className="text-green-600 font-bold">
+                      <span className="text-xs">LKR</span>
+                      <span className="text-lg ml-0.5">{venue.price_per_hour}</span>
+                    </div>
+                    <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">
+                      Book Now
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Trending Venues */}
       <div className="max-w-7xl mx-auto px-4 py-16">
