@@ -24,6 +24,7 @@ const CreateBooking = () => {
   const bookingState = state?.bookingState || {};
   const [selectedDate, setSelectedDate] = useState(bookingState.selectedDate || "");
   const [selectedTime, setSelectedTime] = useState(bookingState.selectedTime || "");
+  const [selectedSport, setSelectedSport] = useState(bookingState.selectedSport || null);
   const [hours, setHours] = useState(bookingState.hours || 1);
   const [loading, setLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
@@ -73,6 +74,10 @@ const CreateBooking = () => {
           if (res.ok) {
             const data = await res.json();
             setVenue(prev => ({ ...prev, ...data }));
+            // Set default sport if not selected
+            if (!selectedSport && data.sports && data.sports.length > 0) {
+              setSelectedSport(data.sports[0]);
+            }
           }
         } catch (err) {
           console.error("Failed to fetch venue details", err);
@@ -118,7 +123,8 @@ const CreateBooking = () => {
       setLoadingSlots(true);
       setSlotError("");
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/booked-slots/${venue.venue_id}?date=${selectedDate}`);
+        const sportTag = selectedSport ? `&sportId=${selectedSport.sport_id}` : "";
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/booked-slots/${venue.venue_id}?date=${selectedDate}${sportTag}`);
         const data = await res.json();
         if (res.ok) setBookedSlots(data.slots || []);
         else setSlotError("Could not load availability");
@@ -129,14 +135,14 @@ const CreateBooking = () => {
       }
     };
     fetchBookedSlots();
-  }, [selectedDate, venue]);
+  }, [selectedDate, venue, selectedSport]);
 
   useEffect(() => {
     const fetchAvailableSlots = async () => {
-      if (!selectedDate || !venue || !hours) return;
+      if (!selectedDate || !venue || !hours || !selectedSport) return;
       setLoadingAvailableSlots(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/available-slots/${venue.venue_id}?date=${selectedDate}&hours=${hours}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/available-slots/${venue.venue_id}?date=${selectedDate}&hours=${hours}&sportId=${selectedSport.sport_id}`);
         if (res.ok) {
           const data = await res.json();
           // API returns { slots: [{ time, available }, ...] }
@@ -149,7 +155,7 @@ const CreateBooking = () => {
       }
     };
     fetchAvailableSlots();
-  }, [selectedDate, hours, venue]);
+  }, [selectedDate, hours, venue, selectedSport]);
 
   const formatTime = (time24) => {
     if (!time24) return "";
@@ -268,6 +274,7 @@ const CreateBooking = () => {
             date: selectedDate,
             time: selectedTime,
             hours: Number(hours),
+            sportId: selectedSport?.sport_id, // Pass selected sport
             invites: invitees.map(i => i.email),
             useWallet: useWallet
           }),
@@ -303,6 +310,7 @@ const CreateBooking = () => {
             venue,
             selectedDate,
             selectedTime,
+            selectedSport,
             hours,
             invitees
           }
@@ -310,8 +318,8 @@ const CreateBooking = () => {
       });
       return;
     }
-    if (!selectedDate || !selectedTime || !hours) {
-      alert("Please select date, time and duration");
+    if (!selectedDate || !selectedTime || !hours || !selectedSport) {
+      alert("Please select date, time, duration and sport");
       return;
     }
     if (timeValidationError || hasConflict) return;
@@ -351,6 +359,26 @@ const CreateBooking = () => {
 
             <div className="bg-white rounded-2xl shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4">Booking details</h2>
+
+              {venue.sports && venue.sports.length > 0 && (
+                <div className="mb-6">
+                  <span className="block text-sm font-medium text-gray-700 mb-2">Select Sport</span>
+                  <div className="flex flex-wrap gap-2">
+                    {venue.sports.map((sport) => (
+                      <button
+                        key={sport.sport_id}
+                        onClick={() => setSelectedSport(sport)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedSport?.sport_id === sport.sport_id
+                          ? "bg-green-600 text-white shadow-md ring-2 ring-green-200"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          }`}
+                      >
+                        {sport.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="grid md:grid-cols-2 gap-4 mb-6">
                 <label className="block">
