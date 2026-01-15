@@ -14,6 +14,7 @@ const VenueDetails = () => {
     const [venue, setVenue] = useState(null);
     const [loading, setLoading] = useState(true);
     const [allAmenities, setAllAmenities] = useState([]);
+    const [supportedSports, setSupportedSports] = useState([]);
 
     const isOwner = isAuthenticated && user?.accountType === "VENUE_OWNER" && venue?.owner_id === user?.id;
 
@@ -50,10 +51,25 @@ const VenueDetails = () => {
         fetchAmenities();
     }, []);
 
+    useEffect(() => {
+        const fetchSports = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/sports`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSupportedSports(data || []);
+                }
+            } catch (error) {
+                console.error("Error fetching sports:", error);
+            }
+        };
+        fetchSports();
+    }, [id]);
+
     const [showEditModal, setShowEditModal] = useState(false);
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [editForm, setEditForm] = useState({});
-    const [blockForm, setBlockForm] = useState({ date: "", startTime: "", duration: "1" });
+    const [blockForm, setBlockForm] = useState({ date: "", startTime: "", duration: "1", sportId: "" });
 
     const handleEditClick = () => {
         setEditForm({
@@ -179,7 +195,8 @@ const VenueDetails = () => {
                 date: blockForm.date,
                 startTime: blockForm.startTime,
                 endTime: endTimeStr,
-                reason: "Manual block by owner"
+                reason: "Manual block by owner",
+                sportId: blockForm.sportId || null
             };
 
             if (blockForm.isRecurring) {
@@ -577,6 +594,24 @@ const VenueDetails = () => {
                                         </select>
                                     </div>
                                 </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Sport (Specific Court)</label>
+                                    <select
+                                        value={blockForm.sportId}
+                                        onChange={e => setBlockForm({ ...blockForm, sportId: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 border p-2 h-[42px]"
+                                    >
+                                        <option value="">Block Entire Venue</option>
+                                        {supportedSports.map(s => (
+                                            <option key={s.sport_id} value={s.sport_id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        Selecting a sport will only block the court associated with that sport.
+                                    </p>
+                                </div>
+
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
@@ -598,31 +633,33 @@ const VenueDetails = () => {
                 )}
 
                 {/* Delete Confirmation Modal */}
-                {showDeleteModal && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-xl w-full max-w-md p-6 animate-fadeIn">
-                            <h2 className="text-xl font-bold mb-2 text-gray-900">Remove Venue?</h2>
-                            <p className="text-gray-600 mb-6">
-                                Are you sure you want to remove <strong>{venue.venue_name}</strong>? This action cannot be undone.
-                            </p>
-                            <div className="flex justify-end gap-3">
-                                <button
-                                    onClick={() => setShowDeleteModal(false)}
-                                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleDeleteVenue}
-                                    className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-medium shadow-sm"
-                                >
-                                    Yes, Remove Venue
-                                </button>
+                {
+                    showDeleteModal && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl w-full max-w-md p-6 animate-fadeIn">
+                                <h2 className="text-xl font-bold mb-2 text-gray-900">Remove Venue?</h2>
+                                <p className="text-gray-600 mb-6">
+                                    Are you sure you want to remove <strong>{venue.venue_name}</strong>? This action cannot be undone.
+                                </p>
+                                <div className="flex justify-end gap-3">
+                                    <button
+                                        onClick={() => setShowDeleteModal(false)}
+                                        className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteVenue}
+                                        className="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 font-medium shadow-sm"
+                                    >
+                                        Yes, Remove Venue
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )
+                }
+            </div >
         </div >
     );
 };
