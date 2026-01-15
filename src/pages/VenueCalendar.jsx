@@ -10,6 +10,8 @@ const VenueCalendar = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [venues, setVenues] = useState([]);
     const [selectedVenueId, setSelectedVenueId] = useState("");
+    const [selectedSportId, setSelectedSportId] = useState("all");
+    const [supportedSports, setSupportedSports] = useState([]);
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -34,6 +36,23 @@ const VenueCalendar = () => {
         };
         if (user) fetchVenues();
     }, [user]);
+
+    // Fetch supported sports for selected venue
+    useEffect(() => {
+        if (!selectedVenueId) return;
+        const fetchSports = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${selectedVenueId}/sports`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setSupportedSports(data || []);
+                }
+            } catch (error) {
+                console.error("Error fetching sports", error);
+            }
+        };
+        fetchSports();
+    }, [selectedVenueId]);
 
     // Fetch Bookings when venue or date changes
     useEffect(() => {
@@ -135,8 +154,14 @@ const VenueCalendar = () => {
             const bStart = new Date(b.booking_start);
             const bEnd = new Date(b.booking_end);
 
+            // If a specific sport is selected, only show conflicts for that sport
+            // OR legacy venue-wide blocks (sport_id is null)
+            const sportMatch = selectedSportId === "all" ||
+                b.sport_id === Number(selectedSportId) ||
+                b.sport_id === null;
+
             // Check overlap
-            return (slotStart < bEnd && slotEnd > bStart);
+            return sportMatch && (slotStart < bEnd && slotEnd > bStart);
         });
     };
 
@@ -163,7 +188,8 @@ const VenueCalendar = () => {
         customerName: "",
         customerEmail: "",
         duration: 1,
-        type: 'WALK_IN' // 'WALK_IN' or 'BLOCK'
+        type: 'WALK_IN', // 'WALK_IN' or 'BLOCK'
+        sportId: ""
     });
 
     const handleSlotClick = (booking, dateStr, timeStr) => {
@@ -172,7 +198,12 @@ const VenueCalendar = () => {
         } else {
             // Open Action Modal for empty slots
             setSlotActionModal({ dateStr, timeStr });
-            setWalkInDetails({ ...walkInDetails, type: 'WALK_IN', duration: 1 }); // Reset defaults
+            setWalkInDetails({
+                ...walkInDetails,
+                type: 'WALK_IN',
+                duration: 1,
+                sportId: selectedSportId === "all" ? "" : selectedSportId
+            }); // Reset defaults
         }
     };
 
@@ -189,7 +220,8 @@ const VenueCalendar = () => {
                     hours: walkInDetails.duration,
                     type: walkInDetails.type,
                     customerName: walkInDetails.customerName,
-                    customerEmail: walkInDetails.customerEmail
+                    customerEmail: walkInDetails.customerEmail,
+                    sportId: walkInDetails.sportId || null
                 }),
                 credentials: "include",
             });
@@ -353,6 +385,22 @@ const VenueCalendar = () => {
                             </div>
                         </div>
 
+                        <div className="relative flex-1 md:w-64">
+                            <select
+                                value={selectedSportId}
+                                onChange={(e) => setSelectedSportId(e.target.value)}
+                                className="w-full pl-4 pr-10 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-700 font-medium focus:ring-2 focus:ring-green-500 focus:border-green-500 appearance-none"
+                            >
+                                <option value="all">All Sports</option>
+                                {supportedSports.map(s => (
+                                    <option key={s.sport_id} value={s.sport_id}>{s.name}</option>
+                                ))}
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <ChevronRight size={16} className="rotate-90" />
+                            </div>
+                        </div>
+
                         <button
                             onClick={() => {
                                 const now = new Date();
@@ -365,7 +413,8 @@ const VenueCalendar = () => {
                                     customerName: "",
                                     customerEmail: "",
                                     duration: 1,
-                                    type: 'WALK_IN'
+                                    type: 'WALK_IN',
+                                    sportId: selectedSportId === "all" ? "" : selectedSportId
                                 });
                             }}
                             className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center transition shadow-sm whitespace-nowrap"
@@ -546,6 +595,23 @@ const VenueCalendar = () => {
                                     </select>
                                 </div>
 
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Sport</label>
+                                    <select
+                                        value={walkInDetails.sportId}
+                                        onChange={(e) => setWalkInDetails({ ...walkInDetails, sportId: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                    >
+                                        <option value="">Specific Court (None)</option>
+                                        {supportedSports.map(s => (
+                                            <option key={s.sport_id} value={s.sport_id}>{s.name}</option>
+                                        ))}
+                                    </select>
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        If "None" is selected, the entire venue will be blocked.
+                                    </p>
+                                </div>
+
                                 {walkInDetails.type === 'WALK_IN' && (
                                     <>
                                         <div>
@@ -640,6 +706,14 @@ const VenueCalendar = () => {
                                 <div className="flex justify-between py-2 border-b border-gray-100">
                                     <span className="text-gray-500">Amount</span>
                                     <span className="font-medium text-gray-900">{formatCurrency(selectedBooking.total_amount)}</span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Sport</span>
+                                    <span className="font-medium text-gray-900">{selectedBooking.sport_name || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between py-2 border-b border-gray-100">
+                                    <span className="text-gray-500">Court</span>
+                                    <span className="font-medium text-gray-900">{selectedBooking.court_name || 'N/A'}</span>
                                 </div>
                                 <div className="flex justify-between py-2 border-b border-gray-100">
                                     <span className="text-gray-500">Status</span>

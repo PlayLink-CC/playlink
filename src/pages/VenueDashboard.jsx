@@ -684,6 +684,7 @@ const VenueDashboard = () => {
                                             <tr className="border-b border-gray-100 text-gray-500 text-sm">
                                                 <th className="pb-3 font-medium">Venue</th>
                                                 <th className="pb-3 font-medium">Customer</th>
+                                                <th className="pb-3 font-medium">Sport</th>
                                                 <th className="pb-3 font-medium">Date & Time</th>
                                                 <th className="pb-3 font-medium">Amount</th>
                                                 <th className="pb-3 font-medium">Status</th>
@@ -699,6 +700,9 @@ const VenueDashboard = () => {
                                                         <td className="py-4 text-gray-600">
                                                             <div>{booking.customer_name}</div>
                                                             <div className="text-xs text-gray-400">{booking.customer_email}</div>
+                                                        </td>
+                                                        <td className="py-4 text-gray-600">
+                                                            <span className="font-medium">{booking.sport_name || 'N/A'}</span>
                                                         </td>
                                                         <td className="py-4 text-gray-600">
                                                             {new Date(booking.booking_start).toLocaleDateString()} <br />
@@ -754,6 +758,7 @@ const VenueDashboard = () => {
                                         <thead>
                                             <tr className="border-b border-gray-100 text-gray-500 text-sm">
                                                 <th className="pb-3 font-medium">Venue</th>
+                                                <th className="pb-3 font-medium">Sport</th>
                                                 <th className="pb-3 font-medium">Date & Time</th>
                                                 <th className="pb-3 font-medium">Status</th>
                                                 <th className="pb-3 font-medium">Action</th>
@@ -765,6 +770,9 @@ const VenueDashboard = () => {
                                                 .map((booking) => (
                                                     <tr key={booking.booking_id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 bg-red-50/30">
                                                         <td className="py-4 font-medium text-gray-900">{booking.venue_name}</td>
+                                                        <td className="py-4 text-gray-600">
+                                                            <span className="font-medium">{booking.sport_name || 'All Sports (Venue)'}</span>
+                                                        </td>
                                                         <td className="py-4 text-gray-600">
                                                             {new Date(booking.booking_start).toLocaleDateString()} <br />
                                                             <span className="text-xs">
