@@ -26,8 +26,9 @@ const CustomTooltip = ({ active, payload, label }) => {
     }
     return null;
 };
-import { PlusCircle, MapPin, Activity, Calendar, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { PlusCircle, MapPin, Activity, Calendar, Trash2, ChevronLeft, ChevronRight, Bell } from "lucide-react";
 import { toast } from "sonner";
+import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, LineChart, Line, ComposedChart } from 'recharts';
 
@@ -309,6 +310,8 @@ const VenueDashboard = () => {
                             <PlusCircle size={20} className="mr-2" />
                             Add New Venue
                         </Link>
+                        <div className="w-px h-10 bg-gray-200 mx-2 self-center"></div>
+                        <NotificationBell />
                     </div>
                 </div>
 
