@@ -23,9 +23,8 @@ const CreateBooking = () => {
   // Booking State
   const bookingState = state?.bookingState || {};
   const [selectedDate, setSelectedDate] = useState(bookingState.selectedDate || "");
-  const [selectedTime, setSelectedTime] = useState(bookingState.selectedTime || "");
+  const [selectedSlots, setSelectedSlots] = useState(bookingState.selectedSlots || []);
   const [selectedSport, setSelectedSport] = useState(bookingState.selectedSport || null);
-  const [hours, setHours] = useState(bookingState.hours || 1);
   const [loading, setLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -33,7 +32,7 @@ const CreateBooking = () => {
   const [timeValidationError, setTimeValidationError] = useState("");
   const [availableSlots, setAvailableSlots] = useState([]);
   const [loadingAvailableSlots, setLoadingAvailableSlots] = useState(false);
-  const [calculatedPrice, setCalculatedPrice] = useState(null);
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [calculatingPrice, setCalculatingPrice] = useState(false);
 
   // Split & Wallet State
@@ -43,6 +42,7 @@ const CreateBooking = () => {
   const [walletBalance, setWalletBalance] = useState(0);
   const [useWallet, setUseWallet] = useState(false);
   const [searchingUsers, setSearchingUsers] = useState(false);
+  const [showSplitSection, setShowSplitSection] = useState(bookingState.invitees?.length > 0 || false);
 
   useEffect(() => {
     if (!venue) {
@@ -139,10 +139,10 @@ const CreateBooking = () => {
 
   useEffect(() => {
     const fetchAvailableSlots = async () => {
-      if (!selectedDate || !venue || !hours || !selectedSport) return;
+      if (!selectedDate || !venue || !selectedSport) return;
       setLoadingAvailableSlots(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/available-slots/${venue.venue_id}?date=${selectedDate}&hours=${hours}&sportId=${selectedSport.sport_id}`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/available-slots/${venue.venue_id}?date=${selectedDate}&hours=1&sportId=${selectedSport.sport_id}`);
         if (res.ok) {
           const data = await res.json();
           // API returns { slots: [{ time, available }, ...] }
@@ -155,7 +155,7 @@ const CreateBooking = () => {
       }
     };
     fetchAvailableSlots();
-  }, [selectedDate, hours, venue, selectedSport]);
+  }, [selectedDate, venue, selectedSport]);
 
   const formatTime = (time24) => {
     if (!time24) return "";
@@ -166,40 +166,27 @@ const CreateBooking = () => {
   };
 
   useEffect(() => {
-    if (selectedTime && hours) {
-      if (selectedDate) {
-        const selectedStart = new Date(`${selectedDate}T${selectedTime}:00`);
-        const now = new Date();
-        if (selectedStart.getTime() <= now.getTime()) {
-          setTimeValidationError("Bookings must be in the future");
-          return;
-        }
-      }
-      const [sh, sm] = selectedTime.split(":").map(Number);
-      const startTotal = sh * 60 + sm;
-      const minutesUntilClose = 22 * 60 - startTotal;
-      const maxDurFromTime = Math.floor(minutesUntilClose / 60);
-      const maxAllowed = Math.min(4, Math.max(0, maxDurFromTime));
+    if (selectedSlots.length > 0 && selectedDate) {
+      // Validate each selected slot is in the future
+      const now = new Date();
+      const invalidSlots = selectedSlots.some(time => {
+        const selectedStart = new Date(`${selectedDate}T${time}:00`);
+        return selectedStart.getTime() <= now.getTime();
+      });
 
-      if (Number(hours) > maxAllowed && maxAllowed >= 1) {
-        setHours(maxAllowed);
-        setTimeValidationError(`Duration adjusted to ${maxAllowed} hour${maxAllowed !== 1 ? "s" : ""} — venue closes at 10:00 PM`);
-        return;
-      }
-
-      if (!doesBookingFitInWindow(selectedTime, parseInt(hours))) {
-        setTimeValidationError("Booking must end by 10:00 PM");
+      if (invalidSlots) {
+        setTimeValidationError("Bookings must be in the future");
       } else {
         setTimeValidationError("");
       }
     } else {
       setTimeValidationError("");
     }
-  }, [selectedTime, hours, selectedDate]);
+  }, [selectedSlots, selectedDate]);
 
   useEffect(() => {
-    if (!venue || !selectedDate || !selectedTime || !hours) {
-      setCalculatedPrice(null);
+    if (!venue || !selectedDate || selectedSlots.length === 0) {
+      setCalculatedPrice(0);
       return;
     }
 
@@ -210,41 +197,37 @@ const CreateBooking = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ venueId: venue.venue_id, date: selectedDate, time: selectedTime, hours: Number(hours) })
+          body: JSON.stringify({
+            venueId: venue.venue_id,
+            date: selectedDate,
+            slots: selectedSlots // Updated to send array of slots
+          })
         });
         if (res.ok) {
           const data = await res.json();
           setCalculatedPrice(data.totalAmount);
         }
-      } catch (e) { console.error(e); }
-      finally { setCalculatingPrice(false); }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setCalculatingPrice(false);
+      }
     };
     const timer = setTimeout(fetchPrice, 300); // Debounce
     return () => clearTimeout(timer);
-  }, [venue, selectedDate, selectedTime, hours]);
+  }, [venue, selectedDate, selectedSlots]);
 
   if (!venue) return null;
 
   // Pricing Calculation
-  const basePrice = Number(venue.price_per_hour || 0) * Number(hours || 1);
-  const totalPrice = calculatedPrice !== null ? calculatedPrice : basePrice;
-  const isDynamic = calculatedPrice !== null && calculatedPrice > basePrice;
+  const basePrice = Number(venue.price_per_hour || 0) * selectedSlots.length;
+  const totalPrice = calculatedPrice || 0;
+  const isDynamic = totalPrice > basePrice;
 
   const totalPeople = invitees.length + 1;
   const sharePrice = totalPrice / totalPeople;
 
-  const checkTimeSlotConflict = () => {
-    if (!selectedTime || !selectedDate) return false;
-    const selectedStart = new Date(`${selectedDate}T${selectedTime}:00`);
-    const selectedEnd = new Date(selectedStart.getTime() + Number(hours) * 60 * 60 * 1000);
-    return bookedSlots.some((slot) => {
-      const slotStart = new Date(slot.booking_start);
-      const slotEnd = new Date(slot.booking_end);
-      return (selectedStart < slotEnd && selectedEnd > slotStart);
-    });
-  };
-
-  const hasConflict = checkTimeSlotConflict();
+  const hasConflict = false; // Handled by availableSlots button disabled state
 
   const handleAddInvitee = (user) => {
     setInvitees([...invitees, user]);
@@ -272,9 +255,8 @@ const CreateBooking = () => {
           body: JSON.stringify({
             venueId: venue.venue_id,
             date: selectedDate,
-            time: selectedTime,
-            hours: Number(hours),
-            sportId: selectedSport?.sport_id, // Pass selected sport
+            slots: selectedSlots, // Send all selected slots
+            sportId: selectedSport?.sport_id,
             invites: invitees.map(i => i.email),
             useWallet: useWallet
           }),
@@ -309,17 +291,16 @@ const CreateBooking = () => {
           bookingState: {
             venue,
             selectedDate,
-            selectedTime,
+            selectedSlots,
             selectedSport,
-            hours,
             invitees
           }
         }
       });
       return;
     }
-    if (!selectedDate || !selectedTime || !hours || !selectedSport) {
-      alert("Please select date, time, duration and sport");
+    if (!selectedDate || selectedSlots.length === 0 || !selectedSport) {
+      alert("Please select date, time slots and sport");
       return;
     }
     if (timeValidationError || hasConflict) return;
@@ -380,16 +361,10 @@ const CreateBooking = () => {
                 </div>
               )}
 
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                <label className="block">
+              <div className="flex flex-col gap-4 mb-6">
+                <label className="block max-w-xs">
                   <span className="block text-sm font-medium text-gray-700 mb-1">Date</span>
                   <input type="date" value={selectedDate} min={todayString} onChange={(e) => setSelectedDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm outline-none" />
-                </label>
-                <label className="block">
-                  <span className="block text-sm font-medium text-gray-700 mb-1">Duration (hours)</span>
-                  <select value={hours} onChange={(e) => setHours(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2 text-sm">
-                    {[1, 2, 3, 4].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
                 </label>
               </div>
 
@@ -406,16 +381,28 @@ const CreateBooking = () => {
                     {availableSlots.map((slot) => (
                       <button
                         key={slot.time}
-                        onClick={() => slot.available && setSelectedTime(slot.time)}
+                        onClick={() => {
+                          if (!slot.available) return;
+                          setSelectedSlots(prev =>
+                            prev.includes(slot.time)
+                              ? prev.filter(t => t !== slot.time)
+                              : [...prev, slot.time].sort()
+                          );
+                        }}
                         disabled={!slot.available}
-                        className={`px-2 py-2 text-sm font-medium rounded-lg border transition ${!slot.available
+                        className={`px-3 py-3 text-sm font-medium rounded-lg border transition ${!slot.available
                           ? "bg-red-50 text-red-400 border-red-100 cursor-not-allowed"
-                          : selectedTime === slot.time
-                            ? "bg-green-600 text-white border-green-600 ring-2 ring-green-300"
+                          : selectedSlots.includes(slot.time)
+                            ? "bg-green-600 text-white border-green-600 ring-4 ring-green-100 shadow-md"
                             : "bg-white text-gray-700 border-gray-300 hover:border-green-500 hover:bg-green-50"
                           }`}
                       >
-                        {formatTime(slot.time)}
+                        <div className="flex flex-col items-center">
+                          <span>{formatTime(slot.time)}</span>
+                          <span className="text-[10px] opacity-80 mt-1">
+                            {formatTime(`${String(parseInt(slot.time.split(':')[0]) + 1).padStart(2, '0')}:${slot.time.split(':')[1]}`)}
+                          </span>
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -437,82 +424,98 @@ const CreateBooking = () => {
 
               {/* Invite Friends Section */}
               <div className="border-t pt-6 mb-6">
-                <h3 className="text-lg font-semibold mb-3 flex items-center">
-                  <Users size={20} className="mr-2 text-gray-600" />
-                  Invite Friends (Split Cost)
-                </h3>
-
-                <div className="relative mb-4">
-                  <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-50 focus-within:bg-white focus-within:ring-2 ring-green-500 transition">
-                    <Search size={18} className="text-gray-400 mr-2" />
-                    <input
-                      type="text"
-                      placeholder="Search friends by name or email..."
-                      className="bg-transparent w-full outline-none text-sm"
-                      value={inviteQuery}
-                      onChange={(e) => setInviteQuery(e.target.value)}
-                    />
+                <div
+                  className="flex items-center justify-between cursor-pointer group"
+                  onClick={() => setShowSplitSection(!showSplitSection)}
+                >
+                  <div className="flex items-center">
+                    <Users size={20} className={`mr-2 transition-colors ${showSplitSection ? 'text-green-600' : 'text-gray-500'}`} />
+                    <h3 className="text-lg font-semibold text-gray-800">Split payment with friends?</h3>
                   </div>
-
-                  {/* Search Results Dropdown */}
-                  {inviteQuery.length >= 2 && (
-                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                      {searchingUsers ? (
-                        <div className="p-3 text-sm text-gray-500">Searching...</div>
-                      ) : (
-                        <>
-                          {/* Existing Users */}
-                          {searchResults.map(u => (
-                            <button
-                              key={u.user_id}
-                              onClick={() => handleAddInvitee(u)}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col border-b last:border-b-0"
-                            >
-                              <span className="font-medium text-gray-800">{u.full_name}</span>
-                              <span className="text-xs text-gray-500">{u.email}</span>
-                            </button>
-                          ))}
-
-                          {/* Invite as Guest Option */}
-                          {inviteQuery.includes('@') && inviteQuery.includes('.') &&
-                            !searchResults.some(u => u.email === inviteQuery) &&
-                            !invitees.some(i => i.email === inviteQuery) && (
-                              <button
-                                onClick={() => handleAddInvitee({
-                                  user_id: `guest-${Date.now()}`,
-                                  full_name: 'Guest User',
-                                  email: inviteQuery,
-                                  isGuest: true
-                                })}
-                                className="w-full text-left px-4 py-2 hover:bg-green-50 flex items-center text-green-700"
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">Invite "{inviteQuery}"</span>
-                                  <span className="text-xs opacity-75">Send email invitation</span>
-                                </div>
-                              </button>
-                            )}
-
-                          {searchResults.length === 0 && !inviteQuery.includes('@') && (
-                            <div className="p-3 text-sm text-gray-500">No users found</div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
+                  <div className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${showSplitSection ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                    {showSplitSection ? 'Enabled' : 'Click to add friends'}
+                  </div>
                 </div>
 
-                {/* Selected Invitees List */}
-                {invitees.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {invitees.map(invitee => (
-                      <div key={invitee.user_id} className="flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm border border-green-100">
-                        <span>{invitee.isGuest ? invitee.email : invitee.full_name}</span>
-                        <button onClick={() => handleRemoveInvitee(invitee.user_id)} className="ml-2 hover:text-red-500">
-                          <X size={14} />
-                        </button>
+                {showSplitSection && (
+                  <div className="mt-4">
+                    <p className="text-xs text-gray-500 mb-4 px-1">
+                      Add friends by name or email. The total cost will be split equally among everyone.
+                    </p>
+
+                    <div className="relative mb-4">
+                      <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-50 focus-within:bg-white focus-within:ring-2 ring-green-500 transition">
+                        <Search size={18} className="text-gray-400 mr-2" />
+                        <input
+                          type="text"
+                          placeholder="Search friends by name or email..."
+                          className="bg-transparent w-full outline-none text-sm"
+                          value={inviteQuery}
+                          onChange={(e) => setInviteQuery(e.target.value)}
+                        />
                       </div>
-                    ))}
+
+                      {/* Search Results Dropdown */}
+                      {inviteQuery.length >= 2 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+                          {searchingUsers ? (
+                            <div className="p-3 text-sm text-gray-500">Searching...</div>
+                          ) : (
+                            <>
+                              {/* Existing Users */}
+                              {searchResults.map(u => (
+                                <button
+                                  key={u.user_id}
+                                  onClick={() => handleAddInvitee(u)}
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col border-b last:border-b-0 cursor-pointer"
+                                >
+                                  <span className="font-medium text-gray-800">{u.full_name}</span>
+                                  <span className="text-xs text-gray-500">{u.email}</span>
+                                </button>
+                              ))}
+
+                              {/* Invite as Guest Option */}
+                              {inviteQuery.includes('@') && inviteQuery.includes('.') &&
+                                !searchResults.some(u => u.email === inviteQuery) &&
+                                !invitees.some(i => i.email === inviteQuery) && (
+                                  <button
+                                    onClick={() => handleAddInvitee({
+                                      user_id: `guest-${Date.now()}`,
+                                      full_name: 'Guest User',
+                                      email: inviteQuery,
+                                      isGuest: true
+                                    })}
+                                    className="w-full text-left px-4 py-2 hover:bg-green-50 flex items-center text-green-700 cursor-pointer"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">Invite "{inviteQuery}"</span>
+                                      <span className="text-xs opacity-75">Send email invitation</span>
+                                    </div>
+                                  </button>
+                                )}
+
+                              {searchResults.length === 0 && !inviteQuery.includes('@') && (
+                                <div className="p-3 text-sm text-gray-500">No users found</div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selected Invitees List */}
+                    {invitees.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {invitees.map(invitee => (
+                          <div key={invitee.user_id} className="flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm border border-green-100">
+                            <span>{invitee.isGuest ? invitee.email : invitee.full_name}</span>
+                            <button onClick={() => handleRemoveInvitee(invitee.user_id)} className="ml-2 hover:text-red-500 cursor-pointer">
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
