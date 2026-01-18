@@ -188,6 +188,7 @@ const VenueCalendar = () => {
         customerName: "",
         customerEmail: "",
         duration: 1,
+        amount: "",
         type: 'WALK_IN', // 'WALK_IN' or 'BLOCK'
         sportId: ""
     });
@@ -221,7 +222,8 @@ const VenueCalendar = () => {
                     type: walkInDetails.type,
                     customerName: walkInDetails.customerName,
                     customerEmail: walkInDetails.customerEmail,
-                    sportId: walkInDetails.sportId || null
+                    sportId: walkInDetails.sportId || null,
+                    totalAmount: Number(walkInDetails.amount) || 0
                 }),
                 credentials: "include",
             });
@@ -413,6 +415,7 @@ const VenueCalendar = () => {
                                     customerName: "",
                                     customerEmail: "",
                                     duration: 1,
+                                    amount: "",
                                     type: 'WALK_IN',
                                     sportId: selectedSportId === "all" ? "" : selectedSportId
                                 });
@@ -497,21 +500,40 @@ const VenueCalendar = () => {
                                                         if (booking.status === 'BLOCKED') {
                                                             cellClass = "bg-gray-100 border-l-4 border-gray-400 p-2 m-1 rounded";
                                                             cellContent = <span className="text-xs font-bold text-gray-600">Blocked</span>;
-                                                        } else {
-                                                            cellClass = "bg-red-50 border-l-4 border-red-400 p-2 m-1 rounded";
+                                                        } else if (booking.guest_name || booking.created_by === user?.id) {
+                                                            // Walk-in Booking
+                                                            cellClass = "bg-blue-50 border-l-4 border-blue-400 p-2 m-1 rounded shadow-sm hover:shadow-md transition-shadow";
                                                             cellContent = (
                                                                 <div className="overflow-hidden">
-                                                                    <span className="block text-xs font-bold text-red-600">Booked</span>
-                                                                    {view === 'day' && (
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-xs text-gray-700 font-medium truncate">
-                                                                                {booking.guest_name || booking.customer_name || 'Unknown User'}
-                                                                            </span>
+                                                                    <span className="block text-[10px] font-bold text-blue-600 truncate uppercase tracking-tighter">Walk-in</span>
+                                                                    <div className="flex flex-col mt-0.5">
+                                                                        <span className="text-[11px] text-gray-800 font-bold truncate leading-tight">
+                                                                            {booking.guest_name || booking.customer_name || 'Walk-in Guest'}
+                                                                        </span>
+                                                                        {view === 'day' && (
                                                                             <span className="text-[10px] text-gray-500 truncate">
-                                                                                {booking.guest_email || booking.customer_email || `ID: ${booking.created_by}`}
+                                                                                {booking.guest_email || 'Manual Entry'}
                                                                             </span>
-                                                                        </div>
-                                                                    )}
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        } else {
+                                                            // Online Booking
+                                                            cellClass = "bg-red-50 border-l-4 border-red-400 p-2 m-1 rounded shadow-sm hover:shadow-md transition-shadow";
+                                                            cellContent = (
+                                                                <div className="overflow-hidden">
+                                                                    <span className="block text-[10px] font-bold text-red-600 truncate uppercase tracking-tighter">Online Booking</span>
+                                                                    <div className="flex flex-col mt-0.5">
+                                                                        <span className="text-[11px] text-gray-800 font-bold truncate leading-tight">
+                                                                            {booking.customer_name || 'Player'}
+                                                                        </span>
+                                                                        {view === 'day' && (
+                                                                            <span className="text-[10px] text-gray-500 truncate">
+                                                                                {booking.customer_email}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         }
@@ -615,6 +637,17 @@ const VenueCalendar = () => {
                                 {walkInDetails.type === 'WALK_IN' && (
                                     <>
                                         <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Amount Paid (LKR)</label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={walkInDetails.amount}
+                                                onChange={(e) => setWalkInDetails({ ...walkInDetails, amount: e.target.value })}
+                                                placeholder="0.00"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500"
+                                            />
+                                        </div>
+                                        <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name (Optional)</label>
                                             <input
                                                 type="text"
@@ -665,18 +698,22 @@ const VenueCalendar = () => {
             )}
 
             {/* Legend */}
-            <div className="max-w-7xl mx-auto mt-6 flex gap-8">
+            <div className="max-w-7xl mx-auto mt-6 flex flex-wrap gap-8">
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500 opacity-20 border border-green-500"></div>
                     <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">Available Slots</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">Booked / Reserved</span>
+                    <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">Online Bookings</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                    <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">Blocked</span>
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">Walk-in Bookings</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                    <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">Blocked / Maintenance</span>
                 </div>
             </div>
 
