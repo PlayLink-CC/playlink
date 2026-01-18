@@ -151,7 +151,7 @@ const ReviewSection = ({ venueId, isOwner = false }) => {
                                         <User size={20} />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-gray-900">{review.first_name} {review.last_name}</p>
+                                        <p className="font-semibold text-gray-900">{review.full_name}</p>
                                         <p className="text-xs text-gray-500">{formatDate(review.created_at)}</p>
                                     </div>
                                 </div>
@@ -271,7 +271,6 @@ const ReviewSection = ({ venueId, isOwner = false }) => {
                                 placeholder="Share your thoughts about this venue..."
                                 className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 p-3"
                                 rows={3}
-                                required
                             />
                         </div>
 
