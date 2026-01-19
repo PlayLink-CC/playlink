@@ -150,6 +150,8 @@ const Navbar = () => {
 
           {/* Mobile Menu Button + Profile icon */}
           <div className="flex items-center gap-3 md:hidden">
+            {isAuthenticated && <NotificationBell />}
+
             <button
               onClick={toggleProfile}
               className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold focus:outline-none"
