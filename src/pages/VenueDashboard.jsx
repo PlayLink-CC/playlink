@@ -15,7 +15,6 @@ import {
     BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
-import NotificationBell from "../components/NotificationBell";
 import { useAuth } from "../context/AuthContext";
 import {
     BarChart,
@@ -330,8 +329,6 @@ const VenueDashboard = () => {
                             <PlusCircle size={18} className="mr-2" />
                             Add New Venue
                         </Link>
-                        <div className="w-px h-10 bg-gray-200 mx-2 hidden md:block"></div>
-                        <NotificationBell />
                     </div>
                 </div>
 

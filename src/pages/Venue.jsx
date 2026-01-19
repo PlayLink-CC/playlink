@@ -64,6 +64,9 @@ const Venue = () => {
 
   // Initial load (supports incoming filters from navigation state)
   useEffect(() => {
+    // Scroll to top when page loads
+    window.scrollTo(0, 0);
+
     const fetchAll = async () => {
       try {
         setLoading(true);
