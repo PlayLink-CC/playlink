@@ -7,6 +7,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
+import { User, Building2, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const SignUpPage = () => {
   const [searchParams] = useSearchParams();
@@ -17,8 +19,11 @@ const SignUpPage = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [city, setCity] = useState("");
+  const [showPassword, setShowPassword] = useState(true);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(true);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { refreshUser } = useAuth();
 
   const navigate = useNavigate();
 
@@ -100,9 +105,16 @@ const SignUpPage = () => {
       }
 
       // At this point user is created (and backend also sets cookie).
-      // Notify success and send them to login page:
-      navigate("/login");
-      toast.success("Account created successfully. Please sign in.");
+      // Use AuthContext to sync the local state with the new session
+      await refreshUser();
+
+      // Notify success and redirect based on account type
+      if (isVenueOwner) {
+        navigate("/venue-dashboard");
+      } else {
+        navigate("/");
+      }
+      toast.success("Welcome to PlayLink! Your account has been created.");
     } catch (err) {
       console.error("Registration error:", err);
       toast.error("Something went wrong. Please try again.");
@@ -206,14 +218,23 @@ const SignUpPage = () => {
               >
                 Password
               </label>
-              <input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  type={!showPassword ? "text" : "password"}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Your password should contain a minimum of 8 characters.
               </p>
@@ -227,14 +248,23 @@ const SignUpPage = () => {
               >
                 Confirm Password
               </label>
-              <input
-                type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition"
-              />
+              <div className="relative">
+                <input
+                  type={!showConfirmPassword ? "text" : "password"}
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
               <p className="text-xs text-gray-500 mt-1">
                 Your password should contain a minimum of 8 characters.
               </p>
@@ -242,22 +272,50 @@ const SignUpPage = () => {
 
           </div>
 
-          {/* Venue Owner Checkbox */}
-          <div className="mb-4">
-            <label className="flex items-start gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isVenueOwner}
-                onChange={(e) => setIsVenueOwner(e.target.checked)}
-                className="w-4 h-4 mt-0.5 text-green-500 border-gray-300 rounded focus:ring-green-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                I am a Venue Owner
-              </span>
+          {/* Explicit Account Type Selection */}
+          <div className="mb-8">
+            <label className="block text-sm font-bold text-gray-700 mb-3">
+              I am a...
             </label>
-            <p className="text-xs text-gray-500 mt-1 ml-6">
-              Check this if you plan to list and manage your own sports venues.
-            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setIsVenueOwner(false)}
+                className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${!isVenueOwner
+                  ? "border-green-600 bg-green-50/50 shadow-sm"
+                  : "border-gray-100 bg-white hover:border-gray-200"
+                  }`}
+              >
+                <div className={`p-2 rounded-lg mb-2 ${!isVenueOwner ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                  <User size={20} />
+                </div>
+                <span className={`text-sm font-bold ${!isVenueOwner ? "text-green-700" : "text-gray-500"}`}>
+                  Player
+                </span>
+                <span className="text-[10px] text-gray-400 mt-1 text-center leading-tight">
+                  Book and join venues
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsVenueOwner(true)}
+                className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${isVenueOwner
+                  ? "border-green-600 bg-green-50/50 shadow-sm"
+                  : "border-gray-100 bg-white hover:border-gray-200"
+                  }`}
+              >
+                <div className={`p-2 rounded-lg mb-2 ${isVenueOwner ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                  <Building2 size={20} />
+                </div>
+                <span className={`text-sm font-bold ${isVenueOwner ? "text-green-700" : "text-gray-500"}`}>
+                  Venue Owner
+                </span>
+                <span className="text-[10px] text-gray-400 mt-1 text-center leading-tight">
+                  List and manage venues
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Terms and Conditions */}
