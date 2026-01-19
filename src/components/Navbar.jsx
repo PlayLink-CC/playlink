@@ -1,3 +1,5 @@
+import NotificationBell from "./NotificationBell";
+
 // src/components/Navbar.jsx
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -85,7 +87,7 @@ const Navbar = () => {
 
             {/* Wallet Logic */}
             {isAuthenticated && walletBalance !== null && user?.accountType !== "VENUE_OWNER" && (
-              <Link to="/wallet" className="text-white text-sm font-medium mr-4 bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2 transition">
+              <Link to="/wallet" className="text-white text-sm font-medium bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-700 flex items-center gap-2 transition">
                 <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
                 {Number(walletBalance).toFixed(2)}
               </Link>
@@ -101,44 +103,48 @@ const Navbar = () => {
               </button>
             )}
 
-            {/* Profile icon + dropdown */}
-            <div className="relative">
-              <button
-                onClick={toggleProfile}
-                className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold focus:outline-none"
-              >
-                {initial}
-              </button>
+            {/* Notifications and Profile */}
+            <div className="flex items-center gap-4">
+              {isAuthenticated && <NotificationBell />}
 
-              {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-lg py-3 text-sm z-50">
-                  {isAuthenticated ? (
-                    <>
-                      <div className="px-4 pb-3 border-b border-gray-100">
-                        <p className="font-medium text-gray-900 truncate">
-                          {user.fullName || "User"}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {user.email}
-                        </p>
-                      </div>
+              <div className="relative">
+                <button
+                  onClick={toggleProfile}
+                  className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold focus:outline-none"
+                >
+                  {initial}
+                </button>
+
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-lg py-3 text-sm z-50">
+                    {isAuthenticated ? (
+                      <>
+                        <div className="px-4 pb-3 border-b border-gray-100">
+                          <p className="font-medium text-gray-900 truncate">
+                            {user.fullName || "User"}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {user.email}
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleLogoutClick}
+                          className="w-full text-left px-4 py-2 mt-1 text-red-600 hover:bg-red-50 rounded-b-xl"
+                        >
+                          Sign out
+                        </button>
+                      </>
+                    ) : (
                       <button
-                        onClick={handleLogoutClick}
-                        className="w-full text-left px-4 py-2 mt-1 text-red-600 hover:bg-red-50 rounded-b-xl"
+                        onClick={handleSignInClick}
+                        className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl"
                       >
-                        Sign out
+                        Sign in
                       </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={handleSignInClick}
-                      className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-xl"
-                    >
-                      Sign in
-                    </button>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

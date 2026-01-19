@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, Check, Info, AlertTriangle, MessageCircle } from 'lucide-react';
+import { Bell, Check, Info, AlertTriangle, MessageCircle, CreditCard } from 'lucide-react';
 
 const NotificationBell = () => {
     const [notifications, setNotifications] = useState([]);
@@ -71,6 +71,7 @@ const NotificationBell = () => {
         switch (type) {
             case 'NEW_COMPETITOR': return <AlertTriangle className="text-amber-500" size={18} />;
             case 'BOOKING_ALERT': return <Info className="text-blue-500" size={18} />;
+            case 'PAYMENT': return <CreditCard className="text-green-500" size={18} />;
             default: return <MessageCircle className="text-gray-500" size={18} />;
         }
     };
