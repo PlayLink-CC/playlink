@@ -14,6 +14,7 @@ const VenueDetails = () => {
     const [venue, setVenue] = useState(null);
     const [loading, setLoading] = useState(true);
     const [allAmenities, setAllAmenities] = useState([]);
+    const [allPolicies, setAllPolicies] = useState([]);
     const [supportedSports, setSupportedSports] = useState([]);
 
     const isOwner = isAuthenticated && user?.accountType === "VENUE_OWNER" && venue?.owner_id === user?.id;
@@ -52,6 +53,21 @@ const VenueDetails = () => {
     }, []);
 
     useEffect(() => {
+        const fetchPolicies = async () => {
+            try {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/policies`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setAllPolicies(data);
+                }
+            } catch (error) {
+                console.error("Error fetching policies:", error);
+            }
+        };
+        fetchPolicies();
+    }, []);
+
+    useEffect(() => {
         const fetchSports = async () => {
             try {
                 const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/sports`);
@@ -78,7 +94,12 @@ const VenueDetails = () => {
             pricePerHour: venue.price_per_hour,
             address: venue.address,
             city: venue.city,
-            amenityIds: venue.amenity_ids ? venue.amenity_ids.split(',').map(Number) : []
+            amenityIds: venue.amenity_ids ? venue.amenity_ids.split(',').map(Number) : [],
+            cancellation_policy_id: venue.cancellation_policy_id || (allPolicies[0]?.policy_id || ""),
+            custom_cancellation_policy: venue.custom_cancellation_policy || "",
+            custom_refund_percentage: venue.custom_refund_percentage || 0,
+            custom_hours_before_start: venue.custom_hours_before_start || 0,
+            use_custom_policy: !!venue.custom_cancellation_policy
         });
         setShowEditModal(true);
     };
@@ -111,12 +132,21 @@ const VenueDetails = () => {
             return;
         }
 
+        const submitData = {
+            ...editForm,
+            // Clean up policy fields based on choice
+            cancellation_policy_id: editForm.use_custom_policy ? null : editForm.cancellation_policy_id,
+            custom_cancellation_policy: editForm.use_custom_policy ? editForm.custom_cancellation_policy : null,
+            custom_refund_percentage: editForm.use_custom_policy ? editForm.custom_refund_percentage : null,
+            custom_hours_before_start: editForm.use_custom_policy ? editForm.custom_hours_before_start : null
+        };
+
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify(editForm)
+                body: JSON.stringify(submitData)
             });
             if (!res.ok) throw new Error("Failed to update venue");
 
@@ -136,7 +166,14 @@ const VenueDetails = () => {
                     .filter(a => editForm.amenityIds.includes(a.amenity_id))
                     .map(a => a.name)
                     .join(", "),
-                amenity_ids: editForm.amenityIds.join(",")
+                amenity_ids: editForm.amenityIds.join(","),
+                cancellation_policy_id: editForm.use_custom_policy ? null : editForm.cancellation_policy_id,
+                custom_cancellation_policy: editForm.use_custom_policy ? editForm.custom_cancellation_policy : null,
+                custom_refund_percentage: editForm.use_custom_policy ? editForm.custom_refund_percentage : null,
+                custom_hours_before_start: editForm.use_custom_policy ? editForm.custom_hours_before_start : null,
+                policy_name: editForm.use_custom_policy ? "Custom Policy" : allPolicies.find(p => p.policy_id == editForm.cancellation_policy_id)?.name,
+                refund_percentage: editForm.use_custom_policy ? editForm.custom_refund_percentage : allPolicies.find(p => p.policy_id == editForm.cancellation_policy_id)?.refund_percentage,
+                hours_before_start: editForm.use_custom_policy ? editForm.custom_hours_before_start : allPolicies.find(p => p.policy_id == editForm.cancellation_policy_id)?.hours_before_start
             }));
 
         } catch (error) {
@@ -470,6 +507,88 @@ const VenueDetails = () => {
                                         ))}
                                     </div>
                                 </div>
+
+                                <div className="border-t pt-4">
+                                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Cancellation Policy</h3>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="policy_type"
+                                                    checked={!editForm.use_custom_policy}
+                                                    onChange={() => setEditForm({ ...editForm, use_custom_policy: false })}
+                                                    className="text-green-600 focus:ring-green-500"
+                                                />
+                                                <span className="text-sm">Standard Policy</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="policy_type"
+                                                    checked={editForm.use_custom_policy}
+                                                    onChange={() => setEditForm({ ...editForm, use_custom_policy: true })}
+                                                    className="text-green-600 focus:ring-green-500"
+                                                />
+                                                <span className="text-sm">Custom Policy</span>
+                                            </label>
+                                        </div>
+
+                                        {!editForm.use_custom_policy ? (
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">Select Policy</label>
+                                                <select
+                                                    value={editForm.cancellation_policy_id}
+                                                    onChange={e => setEditForm({ ...editForm, cancellation_policy_id: e.target.value })}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                >
+                                                    {allPolicies.map(p => (
+                                                        <option key={p.policy_id} value={p.policy_id}>
+                                                            {p.name} ({p.refund_percentage}% refund, {p.hours_before_start}h lead time)
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-600">Policy Description</label>
+                                                    <textarea
+                                                        rows={2}
+                                                        value={editForm.custom_cancellation_policy}
+                                                        onChange={e => setEditForm({ ...editForm, custom_cancellation_policy: e.target.value })}
+                                                        placeholder="e.g., No refunds within 24 hours of booking."
+                                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600">Refund %</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max="100"
+                                                            value={editForm.custom_refund_percentage}
+                                                            onChange={e => setEditForm({ ...editForm, custom_refund_percentage: e.target.value })}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-600">Lead Time (Hours)</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            value={editForm.custom_hours_before_start}
+                                                            onChange={e => setEditForm({ ...editForm, custom_hours_before_start: e.target.value })}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
