@@ -45,6 +45,12 @@ const PricingRulesManager = ({ venueId }) => {
 
     const handleAddRule = async (e) => {
         e.preventDefault();
+
+        if (Number(multiplier) < 1) {
+            toast.error("Multiplier must be 1.0 or greater");
+            return;
+        }
+
         setAdding(true);
 
         try {
@@ -205,8 +211,8 @@ const PricingRulesManager = ({ venueId }) => {
                                 type="button"
                                 onClick={() => toggleDay(day.id)}
                                 className={`px-3 py-1 text-xs rounded-full border ${daysOfWeek.includes(day.id)
-                                        ? "bg-green-600 text-white border-green-600"
-                                        : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
+                                    ? "bg-green-600 text-white border-green-600"
+                                    : "bg-white text-gray-600 border-gray-300 hover:bg-gray-100"
                                     }`}
                             >
                                 {day.label}
