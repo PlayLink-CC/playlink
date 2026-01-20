@@ -12,6 +12,7 @@ import axios from "axios";
 
 import SearchForm from "../components/SearchForm";
 import SportsFilter from "../components/SportsFilter";
+import { useAuth } from "../context/AuthContext";
 
 const Venue = () => {
   const location = useLocation();
@@ -30,6 +31,43 @@ const Venue = () => {
     location: "",
     sport: null,
   });
+
+  const { user } = useAuth();
+  const [userCity, setUserCity] = useState(null);
+  const [userFavoriteSports, setUserFavoriteSports] = useState([]);
+
+  // Tiered sorting logic
+  const sortVenuesByRelevance = (venues) => {
+    if (!userCity && userFavoriteSports.length === 0) return venues;
+
+    return [...venues].sort((a, b) => {
+      let scoreA = 0;
+      let scoreB = 0;
+
+      const cityA = (a.city || "").toLowerCase();
+      const cityB = (b.city || "").toLowerCase();
+      const uCity = (userCity || "").toLowerCase();
+
+      const sportsA = (a.court_types || "").toLowerCase().split(",").map(s => s.trim());
+      const sportsB = (b.court_types || "").toLowerCase().split(",").map(s => s.trim());
+      const favSports = userFavoriteSports.map(s => s.toLowerCase());
+
+      // Tier 1: Same City AND matches a favorite sport
+      const matchesSportA = favSports.some(fs => sportsA.includes(fs));
+      const matchesSportB = favSports.some(fs => sportsB.includes(fs));
+
+      if (cityA === uCity && matchesSportA) scoreA = 3;
+      else if (cityA === uCity) scoreA = 2; // Tier 2: Same city, different sport
+      else if (matchesSportA) scoreA = 1; // Tier 3: Different city, same sport
+
+      if (cityB === uCity && matchesSportB) scoreB = 3;
+      else if (cityB === uCity) scoreB = 2;
+      else if (matchesSportB) scoreB = 1;
+
+      if (scoreB !== scoreA) return scoreB - scoreA;
+      return (a.venue_name || "").localeCompare(b.venue_name || "");
+    });
+  };
 
   // Apply local (name/location) filters on top of baseVenues
   const applyTextFilters = (sourceVenues, name, loc) => {
@@ -56,7 +94,8 @@ const Venue = () => {
       });
     }
 
-    setVenues(filtered);
+    const sorted = sortVenuesByRelevance(filtered);
+    setVenues(sorted);
     setSearchPerformed(
       !!(nameTerm || locTerm || filters.sport) && sourceVenues.length > 0
     );
@@ -110,6 +149,36 @@ const Venue = () => {
     fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync user preferences from AuthContext and backend
+  useEffect(() => {
+    if (user) {
+      setUserCity(user.city);
+
+      const fetchPreferences = async () => {
+        try {
+          // Fetch recommendations to get preferred sports from backend
+          const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/venues/recommendations`, {
+            withCredentials: true
+          });
+          if (res.data?.preferredSports) {
+            setUserFavoriteSports(res.data.preferredSports);
+          }
+        } catch (err) {
+          console.error("Failed to fetch preferences:", err);
+        }
+      };
+      fetchPreferences();
+    } else {
+      setUserCity(null);
+      setUserFavoriteSports([]);
+    }
+  }, [user]);
+
+  // Re-apply filters when preferences or baseVenues change
+  useEffect(() => {
+    applyTextFilters(baseVenues, filters.name, filters.location);
+  }, [userCity, userFavoriteSports, baseVenues]);
 
   // Called by SearchForm on the Venues page
   const handleTextSearch = ({ name, location: loc }) => {

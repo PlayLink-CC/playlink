@@ -31,8 +31,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await res.json();
-      // data.user is the payload from the token: { id, email, accountType }
-      setUser(data.user);
+      // data.user is the payload from the token: { id, email, accountType, city }
+      setUser({
+        ...data.user,
+        city: data.user.city || null
+      });
 
       // Fetch wallet balance if user exists
       await fetchWalletBalance();
@@ -79,12 +82,13 @@ export const AuthProvider = ({ children }) => {
       throw new Error(data.message || "Login failed");
     }
 
-    // Backend returns full user object: { id, fullName, email, ... }
+    // Backend returns full user object: { id, fullName, email, city, ... }
     setUser({
       id: data.id,
       email: data.email,
       fullName: data.fullName,
       accountType: data.accountType,
+      city: data.city || null,
     });
 
     // Fetch balance after login
