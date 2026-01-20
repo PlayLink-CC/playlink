@@ -7,6 +7,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { LocateFixed, MapPin, Loader2 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 /**
  * @param {function} [onSearch]  - Called on Venues page with { name, location }
@@ -18,6 +20,7 @@ const SearchForm = ({ onSearch, initialName = "", initialLocation = "" }) => {
 
   const [venueName, setVenueName] = useState(initialName);
   const [location, setLocation] = useState(initialLocation);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   // keep inputs in sync if props change (e.g. coming from Home → Venues)
   useEffect(() => {
@@ -27,6 +30,60 @@ const SearchForm = ({ onSearch, initialName = "", initialLocation = "" }) => {
   useEffect(() => {
     setLocation(initialLocation || "");
   }, [initialLocation]);
+
+  const handleGeolocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setDetectingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          // Use Nominatim's reverse geocoding (OpenStreetMap)
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`
+          );
+          const data = await res.json();
+
+          // Try to get city, town, or suburb
+          const city = data.address.city || data.address.town || data.address.village || data.address.suburb;
+
+          if (city) {
+            setLocation(city);
+            toast.success(`Detected location: ${city}`);
+            // If on Venues page, we don't trigger search automatically yet, user can refine
+          } else {
+            toast.error("Could not determine city from coordinates");
+          }
+        } catch (err) {
+          console.error("Geocoding error:", err);
+          toast.error("Failed to detect city");
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (error) => {
+        setDetectingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Please enable location access in your browser settings");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location information is unavailable");
+            break;
+          case error.TIMEOUT:
+            toast.error("The request to get user location timed out");
+            break;
+          default:
+            toast.error("An unknown error occurred");
+        }
+      },
+      { timeout: 10000 }
+    );
+  };
 
   const triggerSearch = (filters) => {
     const name = (filters.name || "").trim();
@@ -98,23 +155,44 @@ const SearchForm = ({ onSearch, initialName = "", initialLocation = "" }) => {
 
           {/* Search by location */}
           <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+              <MapPin size={20} />
+            </div>
             <input
               type="text"
               placeholder="Search by location"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="w-full px-4 py-3 pr-9 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full pl-10 pr-20 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-            {location && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+              {location && (
+                <button
+                  type="button"
+                  onClick={clearLocation}
+                  className="text-gray-400 hover:text-gray-600 text-lg leading-none p-1"
+                  aria-label="Clear location"
+                >
+                  ×
+                </button>
+              )}
               <button
                 type="button"
-                onClick={clearLocation}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-lg leading-none"
-                aria-label="Clear location"
+                onClick={handleGeolocation}
+                disabled={detectingLocation}
+                className={`p-1.5 rounded-md transition-all ${detectingLocation
+                    ? "bg-green-50 text-green-600"
+                    : "text-green-600 hover:bg-green-50"
+                  }`}
+                title="Detect current location"
               >
-                ×
+                {detectingLocation ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <LocateFixed size={18} />
+                )}
               </button>
-            )}
+            </div>
           </div>
 
           {/* Search button */}
