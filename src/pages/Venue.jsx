@@ -301,6 +301,21 @@ const Venue = () => {
                     alt={venue.venue_name}
                     className="w-full h-full object-cover"
                   />
+                  {/* Personalization Badges */}
+                  <div className="absolute top-3 left-3 flex flex-col gap-2">
+                    {userCity && (venue.city || "").toLowerCase() === userCity.toLowerCase() && (
+                      <div className="bg-green-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center shadow-md backdrop-blur-sm bg-opacity-90">
+                        <MapPin size={10} className="mr-1" /> Near You
+                      </div>
+                    )}
+                    {userFavoriteSports.some(fs =>
+                      (venue.court_types || "").toLowerCase().includes(fs.toLowerCase())
+                    ) && (
+                        <div className="bg-blue-500 text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center shadow-md backdrop-blur-sm bg-opacity-90">
+                          <Activity size={10} className="mr-1" /> Matches Your Sports
+                        </div>
+                      )}
+                  </div>
                 </div>
 
                 <div className="p-6 flex flex-col flex-grow">
