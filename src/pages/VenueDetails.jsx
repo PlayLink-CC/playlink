@@ -95,12 +95,21 @@ const VenueDetails = () => {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/staff`, {
                 credentials: "include"
             });
-            if (res.ok) {
-                const data = await res.json();
-                setStaffList(data);
+            const text = await res.text();
+
+            try {
+                const data = JSON.parse(text);
+                if (res.ok) {
+                    setStaffList(data);
+                } else {
+                    console.error("API Error fetching staff:", data);
+                }
+            } catch (e) {
+                console.error("Failed to parse staff response. Status:", res.status);
+                console.error("Raw response body (likely HTML):", text);
             }
         } catch (error) {
-            console.error("Error fetching staff:", error);
+            console.error("Network/System Error fetching staff:", error);
         }
     };
 
@@ -114,7 +123,17 @@ const VenueDetails = () => {
                 credentials: "include",
                 body: JSON.stringify({ email: newStaffEmail })
             });
-            const data = await res.json();
+
+            const text = await res.text();
+            let data;
+
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("Failed to parse add-staff response. Status:", res.status);
+                console.error("Raw response body:", text);
+                throw new Error(`Server returned unexpected response (Status ${res.status}). Check console.`);
+            }
 
             if (!res.ok) throw new Error(data.message || "Failed to add staff");
 
@@ -133,7 +152,16 @@ const VenueDetails = () => {
                 credentials: "include"
             });
 
-            if (!res.ok) throw new Error("Failed to remove staff");
+            if (!res.ok) {
+                const text = await res.text();
+                try {
+                    const data = JSON.parse(text);
+                    throw new Error(data.message || "Failed to remove staff");
+                } catch (e) {
+                    console.error("Raw error response:", text);
+                    throw new Error(`Server returned status ${res.status}`);
+                }
+            }
 
             toast.success("Staff removed successfully");
             fetchStaff();
