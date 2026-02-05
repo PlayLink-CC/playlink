@@ -260,7 +260,7 @@ const CreateBooking = () => {
   const initStripePayment = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/create-payment-intent`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/checkout-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem('token')}` },
         credentials: "include",
@@ -276,14 +276,18 @@ const CreateBooking = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to init payment");
 
-      // Safety check if fully covered happened unexpectedly
-      if (data.fullyCovered) {
-        alert("Unexpected state: Payment fully covered by points. Please use 'Book Now' button.");
-        return false;
+      // If full payment handled internally (e.g. points cover all)
+      if (data.success) {
+        setBookingSuccessData(data);
+        setCurrentStep(4);
+        return true;
       }
 
-      setClientSecret(data.clientSecret);
-      return true;
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+        return true;
+      }
+
     } catch (err) {
       alert(err.message);
       return false;
@@ -302,15 +306,8 @@ const CreateBooking = () => {
   const [showStripeForm, setShowStripeForm] = useState(false);
 
   const handleProceedToPayment = async () => {
-    // If we already have a client secret, just show the form
-    if (clientSecret) {
-      setShowStripeForm(true);
-      return;
-    }
-    const success = await initStripePayment();
-    if (success) {
-      setShowStripeForm(true);
-    }
+    // Redirects to Stripe, no local form
+    await initStripePayment();
   };
 
   const handlePaymentSuccess = async (paymentIntent) => {
@@ -580,16 +577,8 @@ const CreateBooking = () => {
           </button>
         )}
 
-        {showStripeForm && clientSecret && !isFullyCovered && (
-          <div className="mt-6 animate-fadeIn">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-bold text-gray-700">Card Payment</h3>
-              <button onClick={() => setShowStripeForm(false)} className="text-sm text-gray-500 hover:underline">Change Method</button>
-            </div>
-            <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
-              <PaymentForm amount={payAmount} onSuccess={handlePaymentSuccess} onBack={() => setShowStripeForm(false)} />
-            </Elements>
-          </div>
+        {showStripeForm && isFullyCovered && (
+          <p className="text-center text-red-500 mt-4">Error: Payment expected but covered. Please refresh.</p>
         )}
       </div>
     );
