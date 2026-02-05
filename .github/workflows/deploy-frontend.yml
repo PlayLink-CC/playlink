@@ -14,15 +14,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node_version: '22' # Fixes the crypto.hash error by using a modern version
+          node_version: '22'
 
       - name: Install and Build
+        # ADD 'working-directory' TO POINT TO YOUR FRONTEND FOLDER
+        working-directory: ./playlink 
         run: |
           npm install
           npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_STRIPE_PUBLIC_KEY: ${{ secrets.VITE_STRIPE_PUBLIC_KEY }} # Bakes the key into the build
+          VITE_STRIPE_PUBLIC_KEY: ${{ secrets.VITE_STRIPE_PUBLIC_KEY }}
 
       - name: Sync Server Repo and Clean Old Files
         uses: appleboy/ssh-action@master
@@ -43,9 +45,10 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "dist/"
+          # UPDATE SOURCE PATH TO INCLUDE YOUR FOLDER NAME
+          source: "playlink/dist/" 
           target: "/var/www/html"
-          strip_components: 1
+          strip_components: 2 # Increased to 2 to strip 'playlink' and 'dist'
           rm: false 
 
       - name: Restart Nginx
