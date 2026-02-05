@@ -1,11 +1,12 @@
 // src/pages/CreateBooking.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet, Shield, CheckCircle, Clock } from "lucide-react";
+import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet, Shield, CheckCircle, Clock, Info, AlignLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import ReviewSection from "../components/ReviewSection";
+import VenueReviewSection from "../components/VenueReviewSection";
 import BookingProgressBar from "../components/BookingProgressBar";
 import PaymentForm from "../components/PaymentForm";
 
@@ -357,49 +358,35 @@ const CreateBooking = () => {
 
   const renderStep1 = () => (
     <div className="grid lg:grid-cols-3 gap-8 animate-fadeIn">
-      {/* Venue Info & Selection */}
+      {/* Left Column: Action Area */}
       <div className="lg:col-span-2 space-y-6">
-        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
-          <div className="h-56 w-full overflow-hidden relative">
-            <img src={venue.primary_image} alt={venue.venue_name} className="w-full h-full object-cover" />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
-              <h1 className="text-3xl font-bold text-white mb-1">{venue.venue_name}</h1>
-              <div className="flex items-center text-white/90">
-                <MapPin size={18} className="mr-2" />
-                <span>{venue.location}</span>
-              </div>
-            </div>
-          </div>
-          <div className="p-6 flex justify-between items-center">
-            <div>
-              <p className="text-gray-500 text-sm">Hourly Rate</p>
-              <div className="flex items-center text-green-600 font-bold text-xl">
-                <DollarSign size={20} className="mr-1" />
-                <span>LKR {venue.price_per_hour}</span>
-              </div>
-            </div>
-            {/* Sport Selection */}
-            {venue.sports?.length > 0 && (
-              <div className="flex gap-2">
+        <div className="bg-white rounded-2xl shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Calendar size={22} className="text-green-600" />
+            Booking Details
+          </h2>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Select Sport</label>
+            {venue.sports?.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
                 {venue.sports.map((sport) => (
                   <button
                     key={sport.sport_id}
                     onClick={() => setSelectedSport(sport)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedSport?.sport_id === sport.sport_id
-                      ? "bg-green-600 text-white shadow-md ring-2 ring-green-200"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${selectedSport?.sport_id === sport.sport_id
+                      ? "bg-green-600 text-white shadow-lg shadow-green-100 border-2 border-green-600"
+                      : "bg-white text-gray-600 border-2 border-gray-100 hover:border-green-200 hover:bg-green-50"
                       }`}
                   >
                     {sport.name}
                   </button>
                 ))}
               </div>
+            ) : (
+              <p className="text-sm text-gray-400 italic">No sports available for this venue.</p>
             )}
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-md p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Select Date & Time</h2>
 
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
@@ -437,7 +424,7 @@ const CreateBooking = () => {
           </div>
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <button
             onClick={goToSplitStep}
             disabled={!selectedDate || selectedSlots.length === 0}
@@ -446,23 +433,61 @@ const CreateBooking = () => {
             Next Step
           </button>
         </div>
+
+        <VenueReviewSection
+          venueId={venue.venue_id}
+          averageRating={venue.avg_rating}
+        />
       </div>
 
-      {/* Side Panel: booked slots */}
-      <div className="lg:col-span-1">
-        {selectedDate && <div className="bg-white rounded-2xl shadow-md p-6 sticky top-24">
-          <h3 className="font-bold text-gray-900 mb-4">Unavailable Times</h3>
-          <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-            {loadingSlots ? <p>Loading...</p> : bookedSlots.length === 0 ? <p className="text-green-600 text-sm">Full availability!</p> :
-              bookedSlots.map((s, i) => (
-                <div key={i} className="flex items-center text-xs bg-red-50 p-3 rounded-lg text-red-700 border border-red-100">
-                  <Clock size={14} className="mr-2" />
-                  {new Date(s.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(s.booking_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              ))
-            }
+      {/* Right Column: Info Area */}
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="h-56 w-full overflow-hidden relative">
+            <img src={venue.primary_image} alt={venue.venue_name} className="w-full h-full object-cover" />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+              <h1 className="text-3xl font-bold text-white mb-1">{venue.venue_name}</h1>
+              <div className="flex items-center text-white/90">
+                <MapPin size={18} className="mr-2" />
+                <span>{venue.location}</span>
+              </div>
+            </div>
           </div>
-        </div>}
+          <div className="p-6">
+            <p className="text-gray-500 text-sm">Hourly Rate</p>
+            <div className="flex items-center text-green-600 font-bold text-xl mb-3">
+              <DollarSign size={20} className="mr-1" />
+              <span>LKR {venue.price_per_hour}</span>
+            </div>
+            {venue.description && (
+              <div className="pt-4 border-t border-gray-100">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {venue.description}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {selectedDate && (
+          <div className="bg-white rounded-2xl shadow-md p-6 sticky top-24">
+            <h3 className="font-bold text-gray-900 mb-4">Unavailable Times</h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+              {loadingSlots ? (
+                <p>Loading...</p>
+              ) : bookedSlots.length === 0 ? (
+                <p className="text-green-600 text-sm">Full availability!</p>
+              ) : (
+                bookedSlots.map((s, i) => (
+                  <div key={i} className="flex items-center text-xs bg-red-50 p-3 rounded-lg text-red-700 border border-red-100">
+                    <Clock size={14} className="mr-2" />
+                    {new Date(s.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(s.booking_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

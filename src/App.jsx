@@ -6,7 +6,8 @@
  */
 
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { Toaster } from "sonner";
 
 import MainLayout from "./components/layout/MainLayout";
@@ -30,6 +31,19 @@ import VenueCalendar from "./pages/VenueCalendar";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 
 /**
+ * ScrollToTop Component - Resets scroll position to top on every route change
+ */
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
+
+/**
  * App Component - Main application router
  * Organizes all routes into logical groups:
  * - Authentication routes (Login, SignUp)
@@ -42,6 +56,7 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 const App = () => {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Toaster position="bottom-right" richColors />
       <Routes>
         {/* Auth pages */}
