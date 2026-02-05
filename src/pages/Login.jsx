@@ -30,6 +30,8 @@ export default function SignInPage() {
 
       if (user.accountType === "VENUE_OWNER") {
         navigate("/venue-dashboard");
+      } else if (user.accountType === "EMPLOYEE") {
+        navigate("/employee/dashboard");
       } else {
         // Redirect back to previous page if available
         if (location.state?.from) {

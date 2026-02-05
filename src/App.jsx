@@ -27,6 +27,7 @@ import CreateVenue from "./pages/CreateVenue";
 import VenueDetails from "./pages/VenueDetails";
 import Wallet from "./pages/Wallet";
 import VenueCalendar from "./pages/VenueCalendar";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
 
 /**
  * App Component - Main application router
@@ -70,6 +71,11 @@ const App = () => {
           <Route path="/venue-dashboard" element={<VenueDashboard />} />
           <Route path="/venue-calendar" element={<VenueCalendar />} />
           <Route path="/create-venue" element={<CreateVenue />} />
+        </Route>
+
+        {/* Protected Routes for Employees */}
+        <Route element={<ProtectedRoute allowedRoles={['EMPLOYEE']}><MainLayout /></ProtectedRoute>}>
+          <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
         </Route>
 
         {/* 404 Not Found Route - must be last */}
