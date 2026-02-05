@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import ReviewSection from "../components/ReviewSection";
+import VenueReviewSection from "../components/VenueReviewSection";
 import BookingProgressBar from "../components/BookingProgressBar";
 import PaymentForm from "../components/PaymentForm";
 
@@ -397,6 +398,11 @@ const CreateBooking = () => {
             )}
           </div>
         </div>
+
+        <VenueReviewSection
+          venueId={venue.venue_id}
+          averageRating={venue.avg_rating}
+        />
 
         <div className="bg-white rounded-2xl shadow-md p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Select Date & Time</h2>
