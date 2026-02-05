@@ -617,6 +617,8 @@ const BookingSummary = () => {
           </div>
         </div>
       )}
+
+
     </div>
   );
 };
