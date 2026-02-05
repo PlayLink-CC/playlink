@@ -77,6 +77,9 @@ const BookingSummary = () => {
   const [clientSecret, setClientSecret] = useState("");
   const [stripeAmount, setStripeAmount] = useState(0);
   const [showCardModal, setShowCardModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [countdown, setCountdown] = useState(20);
+  const [paidBooking, setPaidBooking] = useState(null);
 
   const sessionId = searchParams.get("session_id");
   const cancelled = searchParams.get("cancelled");
@@ -153,6 +156,16 @@ const BookingSummary = () => {
     load();
   }, [isAuthenticated, navigate, sessionId, cancelled]);
 
+  // Success Redirect Timer
+  useEffect(() => {
+    if (showSuccessModal && countdown > 0) {
+      const timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
+      return () => clearInterval(timer);
+    } else if (showSuccessModal && countdown === 0) {
+      navigate('/');
+    }
+  }, [showSuccessModal, countdown, navigate]);
+
   const handlePayShare = async (bookingId) => {
     setPayingShareId(bookingId);
   };
@@ -190,13 +203,39 @@ const BookingSummary = () => {
     }
   };
 
-  const handleSharePaymentSuccess = async () => {
-    toast.success("Share paid successfully!");
-    setShowCardModal(false);
-    setClientSecret("");
-    setPayingShareId(null);
-    await loadBookings();
-    fetchWalletBalance();
+  const handleSharePaymentSuccess = async (paymentIntent) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/confirm-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        credentials: "include",
+        body: JSON.stringify({ paymentIntentId: paymentIntent.id })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        toast.success("Share paid successfully!");
+        setShowCardModal(false);
+        setClientSecret("");
+
+        // Find the booking just paid to show in success screen
+        const b = bookings.find(x => x.booking_id === payingShareId);
+        setPaidBooking(b);
+
+        setShowSuccessModal(true);
+        setCountdown(20);
+
+        await loadBookings();
+        fetchWalletBalance();
+      } else {
+        toast.error("Payment succeeded but sync failed: " + (data.message || data.error));
+      }
+    } catch (e) {
+      toast.error("Confirmation error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openCancelModal = (booking) => {
@@ -648,8 +687,8 @@ const BookingSummary = () => {
       {/* Card Payment Modal */}
       {showCardModal && clientSecret && (
         <div className="fixed inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-md z-[60] p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 p-8 border border-gray-100">
-            <div className="flex justify-between items-center mb-6">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200 p-6 sm:p-10 border border-gray-100 custom-scrollbar">
+            <div className="flex justify-between items-center mb-6 sticky top-0 bg-white pb-2 z-10">
               <h3 className="text-2xl font-black text-gray-900 tracking-tight">Pay Share</h3>
               <button
                 onClick={() => setShowCardModal(false)}
@@ -659,14 +698,19 @@ const BookingSummary = () => {
               </button>
             </div>
 
-            <div className="mb-6">
-              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+            <div className="mb-8 p-6 bg-gray-50 rounded-[1.5rem] border border-gray-100">
+              <div className="flex justify-between items-center mb-4">
                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Share Amount</span>
-                <p className="text-2xl font-black text-green-600 tracking-tighter">
+                <p className="text-3xl font-black text-green-600 tracking-tighter">
                   <span className="text-xs font-normal italic opacity-60 mr-1">LKR</span>
                   {Number(stripeAmount).toLocaleString()}
                 </p>
               </div>
+              {paidBooking && (
+                <div className="text-sm text-gray-500 font-medium pt-3 border-t border-gray-200/60">
+                  Paying for <span className="text-gray-900 font-bold">{paidBooking.venue_name}</span>
+                </div>
+              )}
             </div>
 
             {!STRIPE_KEY ? (
@@ -675,14 +719,70 @@ const BookingSummary = () => {
                 <p>Please add <code>VITE_STRIPE_PUBLIC_KEY</code> to your `.env` file.</p>
               </div>
             ) : (
-              <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
-                <PaymentForm
-                  amount={Number(stripeAmount).toFixed(2)}
-                  onSuccess={handleSharePaymentSuccess}
-                  onBack={() => setShowCardModal(false)}
-                />
-              </Elements>
+              <div className="card-element-container overflow-hidden rounded-xl">
+                <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+                  <PaymentForm
+                    amount={Number(stripeAmount).toFixed(2)}
+                    onSuccess={handleSharePaymentSuccess}
+                    onBack={() => setShowCardModal(false)}
+                  />
+                </Elements>
+              </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Share Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-md z-[70] p-4 animate-in fade-in duration-500">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-xl w-full overflow-hidden animate-in zoom-in-95 duration-300 p-12 text-center border border-gray-100">
+            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
+              <CheckCircle2 size={56} strokeWidth={2.5} />
+            </div>
+
+            <h2 className="text-4xl font-black text-gray-900 tracking-tight mb-3">Payment Confirmed!</h2>
+            <p className="text-gray-500 font-medium mb-10">Your share has been paid and your spot is secured.</p>
+
+            <div className="bg-gray-50 rounded-3xl p-8 mb-10 text-left space-y-4 border border-gray-100/50">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Venue</span>
+                <span className="font-bold text-gray-900">{paidBooking?.venue_name || "Sport Venue"}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Amount Paid</span>
+                <span className="font-black text-green-600 tracking-tight text-xl">LKR {Number(stripeAmount).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center pt-4 border-t border-gray-200/60">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Status</span>
+                <span className="bg-green-100 text-green-700 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">PAID</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => navigate('/')}
+                className="flex-1 px-8 py-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-all active:scale-95"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setPayingShareId(null);
+                }}
+                className="flex-1 px-8 py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-xl shadow-green-100 transition-all active:scale-95"
+              >
+                Back to Bookings
+              </button>
+            </div>
+
+            <div className="mt-8 flex items-center justify-center gap-2">
+              <div className="w-1.5 h-1.5 bg-gray-200 rounded-full animate-pulse"></div>
+              <p className="text-xs text-gray-300 font-bold tracking-widest uppercase">
+                Auto-redirecting in {countdown}s
+              </p>
+            </div>
           </div>
         </div>
       )}
