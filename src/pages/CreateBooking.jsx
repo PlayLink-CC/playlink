@@ -1,30 +1,33 @@
 // src/pages/CreateBooking.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet, Shield } from "lucide-react";
+import { MapPin, DollarSign, Calendar, AlertCircle, ArrowLeft, Users, X, Search, Wallet, Shield, CheckCircle, Clock } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { doesBookingFitInWindow } from "../utils/timeUtil.js";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import ReviewSection from "../components/ReviewSection";
+import BookingProgressBar from "../components/BookingProgressBar";
+import PaymentForm from "../components/PaymentForm";
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const CreateBooking = () => {
   const { user, isAuthenticated } = useAuth();
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  // Scroll to top on mount
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+  // --- Step State ---
+  const [currentStep, setCurrentStep] = useState(1);
 
-  // Initialize venue from state if available (supports restoration after login)
-  const initialVenue = state?.venue || state?.bookingState?.venue || (state?.venueId ? { venue_id: state.venueId, venue_name: state.venueName, price_per_hour: state.price } : null);
+  // --- Booking Data State ---
+  const initialVenue = state?.venue || state?.bookingState?.venue || (state?.venueId ? { venue_id: state.venueId, venue_name: state.venueName, price_per_hour: state.price, primary_image: state.primary_image, location: state.location } : null);
   const [venue, setVenue] = useState(initialVenue);
+  const [selectedDate, setSelectedDate] = useState(state?.bookingState?.selectedDate || "");
+  const [selectedSlots, setSelectedSlots] = useState(state?.bookingState?.selectedSlots || []);
+  const [selectedSport, setSelectedSport] = useState(state?.bookingState?.selectedSport || null);
 
-  // Booking State
-  const bookingState = state?.bookingState || {};
-  const [selectedDate, setSelectedDate] = useState(bookingState.selectedDate || "");
-  const [selectedSlots, setSelectedSlots] = useState(bookingState.selectedSlots || []);
-  const [selectedSport, setSelectedSport] = useState(bookingState.selectedSport || null);
+  // --- Loading / Error States ---
   const [loading, setLoading] = useState(false);
   const [bookedSlots, setBookedSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -35,37 +38,27 @@ const CreateBooking = () => {
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [calculatingPrice, setCalculatingPrice] = useState(false);
 
-  // Split & Wallet State
+  // --- Invite / Split State ---
   const [inviteQuery, setInviteQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
-  const [invitees, setInvitees] = useState(bookingState.invitees || []); // Array of user objects
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [useWallet, setUseWallet] = useState(false);
+  const [invitees, setInvitees] = useState(state?.bookingState?.invitees || []);
   const [searchingUsers, setSearchingUsers] = useState(false);
-  const [showSplitSection, setShowSplitSection] = useState(bookingState.invitees?.length > 0 || false);
+  const [isSplitting, setIsSplitting] = useState(null); // null, 'yes', 'no'
 
+  // --- Payment State ---
+  const [clientSecret, setClientSecret] = useState("");
+  const [paymentIntentId, setPaymentIntentId] = useState("");
+  const [bookingSuccessData, setBookingSuccessData] = useState(null);
+  const [countdown, setCountdown] = useState(20);
+
+  // --- Effects ---
+
+  // Redirect if no venue
   useEffect(() => {
-    if (!venue) {
-      navigate("/venues");
-    }
+    if (!venue) navigate("/venues");
   }, [venue, navigate]);
 
-  // Today's date string for date min attribute
-  const today = new Date();
-  const pad = (n) => String(n).padStart(2, "0");
-  const todayString = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-
-
-
-  // Fetch Wallet Balance
-  useEffect(() => {
-    if (isAuthenticated) {
-      // Mock fetch or placeholder. 
-      // Ideally: fetch('/api/users/me') and check balance if present.
-    }
-  }, [isAuthenticated]);
-
-  // Fetch fresh venue data to get policy details
+  // Fetch Full Venue Details
   useEffect(() => {
     if (venue?.venue_id) {
       const fetchVenue = async () => {
@@ -74,61 +67,27 @@ const CreateBooking = () => {
           if (res.ok) {
             const data = await res.json();
             setVenue(prev => ({ ...prev, ...data }));
-            // Set default sport if not selected
-            if (!selectedSport && data.sports && data.sports.length > 0) {
-              setSelectedSport(data.sports[0]);
-            }
+            if (!selectedSport && data.sports?.length > 0) setSelectedSport(data.sports[0]);
           }
         } catch (err) {
-          console.error("Failed to fetch venue details", err);
+          console.error("Failed to fetch venue", err);
         }
       };
       fetchVenue();
     }
   }, [venue?.venue_id]);
 
-  // User Search
-  useEffect(() => {
-    if (inviteQuery.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setSearchingUsers(true);
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/search?query=${inviteQuery}`, {
-          credentials: 'include'
-        });
-        const data = await res.json();
-        if (res.ok) {
-          // Filter out already invited users and self
-          const filtered = (data.users || []).filter(u =>
-            String(u.user_id) !== String(user.id) &&
-            !invitees.find(i => String(i.user_id) === String(u.user_id))
-          );
-          setSearchResults(filtered);
-        }
-      } catch (err) {
-        console.error("Search failed", err);
-      } finally {
-        setSearchingUsers(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [inviteQuery, invitees, user]);
-
+  // Fetch Booked Slots
   useEffect(() => {
     const fetchBookedSlots = async () => {
       if (!selectedDate || !venue) return;
       setLoadingSlots(true);
-      setSlotError("");
       try {
         const sportTag = selectedSport ? `&sportId=${selectedSport.sport_id}` : "";
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/booked-slots/${venue.venue_id}?date=${selectedDate}${sportTag}`);
         const data = await res.json();
         if (res.ok) setBookedSlots(data.slots || []);
-        else setSlotError("Could not load availability");
-      } catch (err) {
+      } catch {
         setSlotError("Failed to load availability");
       } finally {
         setLoadingSlots(false);
@@ -137,6 +96,7 @@ const CreateBooking = () => {
     fetchBookedSlots();
   }, [selectedDate, venue, selectedSport]);
 
+  // Fetch Available Slots
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!selectedDate || !venue || !selectedSport) return;
@@ -145,7 +105,6 @@ const CreateBooking = () => {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/available-slots/${venue.venue_id}?date=${selectedDate}&hours=1&sportId=${selectedSport.sport_id}`);
         if (res.ok) {
           const data = await res.json();
-          // API returns { slots: [{ time, available }, ...] }
           setAvailableSlots(data.slots || []);
         }
       } catch (err) {
@@ -157,51 +116,20 @@ const CreateBooking = () => {
     fetchAvailableSlots();
   }, [selectedDate, venue, selectedSport]);
 
-  const formatTime = (time24) => {
-    if (!time24) return "";
-    const [h, m] = time24.split(":").map(Number);
-    const date = new Date();
-    date.setHours(h, m);
-    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  };
-
-  useEffect(() => {
-    if (selectedSlots.length > 0 && selectedDate) {
-      // Validate each selected slot is in the future
-      const now = new Date();
-      const invalidSlots = selectedSlots.some(time => {
-        const selectedStart = new Date(`${selectedDate}T${time}:00`);
-        return selectedStart.getTime() <= now.getTime();
-      });
-
-      if (invalidSlots) {
-        setTimeValidationError("Bookings must be in the future");
-      } else {
-        setTimeValidationError("");
-      }
-    } else {
-      setTimeValidationError("");
-    }
-  }, [selectedSlots, selectedDate]);
-
+  // Pricing Calculation
   useEffect(() => {
     if (!venue || !selectedDate || selectedSlots.length === 0) {
       setCalculatedPrice(0);
       return;
     }
-
     const fetchPrice = async () => {
       setCalculatingPrice(true);
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/calculate-price`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
           credentials: 'include',
-          body: JSON.stringify({
-            venueId: venue.venue_id,
-            date: selectedDate,
-            slots: selectedSlots // Updated to send array of slots
-          })
+          body: JSON.stringify({ venueId: venue.venue_id, date: selectedDate, slots: selectedSlots })
         });
         if (res.ok) {
           const data = await res.json();
@@ -213,441 +141,368 @@ const CreateBooking = () => {
         setCalculatingPrice(false);
       }
     };
-    const timer = setTimeout(fetchPrice, 300); // Debounce
+    const timer = setTimeout(fetchPrice, 300);
     return () => clearTimeout(timer);
   }, [venue, selectedDate, selectedSlots]);
 
-  if (!venue) return null;
-
-  // Pricing Calculation
-  const basePrice = Number(venue.price_per_hour || 0) * selectedSlots.length;
-  const totalPrice = calculatedPrice || 0;
-  const isDynamic = totalPrice > basePrice;
-
-  const totalPeople = invitees.length + 1;
-  const sharePrice = totalPrice / totalPeople;
-
-  const hasConflict = false; // Handled by availableSlots button disabled state
-
-  const handleAddInvitee = (user) => {
-    setInvitees([...invitees, user]);
-    setInviteQuery("");
-    setSearchResults([]);
-  };
-
-  const handleRemoveInvitee = (id) => {
-    setInvitees(invitees.filter(i => i.user_id !== id));
-  };
-
-  /* ... existing code ... */
-  const [confirmationModal, setConfirmationModal] = useState({ show: false });
-
-  const processCheckout = async () => {
-    setLoading(true);
-    setConfirmationModal({ show: false }); // Close if open
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/bookings/checkout-session`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            venueId: venue.venue_id,
-            date: selectedDate,
-            slots: selectedSlots, // Send all selected slots
-            sportId: selectedSport?.sport_id,
-            invites: invitees.map(i => i.email),
-            useWallet: useWallet
-          }),
+  // User Search for Split
+  useEffect(() => {
+    if (inviteQuery.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearchingUsers(true);
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/users/search?query=${inviteQuery}`, { credentials: 'include' });
+        const data = await res.json();
+        if (res.ok) {
+          const filtered = (data.users || []).filter(u => String(u.user_id) !== String(user?.id) && !invitees.find(i => String(i.user_id) === String(u.user_id)));
+          setSearchResults(filtered);
         }
-      );
+      } catch (err) {
+        console.error("Search failed", err);
+      } finally {
+        setSearchingUsers(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inviteQuery, invitees, user]);
 
+  // Countdown for success page
+  useEffect(() => {
+    if (currentStep === 4 && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (currentStep === 4 && countdown === 0) {
+      navigate('/home');
+    }
+  }, [currentStep, countdown, navigate]);
+
+
+  // --- Helper Functions ---
+  const formatTime = (time24) => {
+    if (!time24) return "";
+    const [h, m] = time24.split(":").map(Number);
+    const date = new Date();
+    date.setHours(h, m);
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  };
+  const pad = (n) => String(n).padStart(2, "0");
+  const todayString = `${new Date().getFullYear()}-${pad(new Date().getMonth() + 1)}-${pad(new Date().getDate())}`;
+
+  const handleAddInvitee = (u) => { setInvitees([...invitees, u]); setInviteQuery(""); setSearchResults([]); };
+  const handleRemoveInvitee = (id) => setInvitees(invitees.filter(i => i.user_id !== id));
+
+  // --- Handlers ---
+  const goToSplitStep = () => {
+    if (!isAuthenticated) return navigate("/login", { state: { from: "/create-booking", bookingState: { venue, selectedDate, selectedSlots, selectedSport } } });
+    if (!selectedDate || selectedSlots.length === 0 || !selectedSport) return alert("Please select date, slots and sport");
+    setCurrentStep(2);
+  };
+
+  const goToPaymentStep = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/create-payment-intent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        credentials: "include",
+        body: JSON.stringify({
+          venueId: venue.venue_id,
+          date: selectedDate,
+          slots: selectedSlots,
+          sportId: selectedSport?.sport_id,
+          invites: invitees.map(i => i.email),
+          useWallet: false // For now force stripe
+        })
+      });
       const data = await res.json();
-      if (!res.ok) {
-        alert(data.message || "Failed to start payment");
-        setLoading(false);
-        return;
-      }
-
-      if (data.checkoutUrl) {
-        window.location.href = data.checkoutUrl;
-      } else if (data.success) {
-        navigate(`/booking-summary?session_id=POINTS_PAYMENT`);
-      }
-
+      if (!res.ok) throw new Error(data.message || "Failed to init payment");
+      setClientSecret(data.clientSecret);
+      setCurrentStep(3);
     } catch (err) {
-      console.error(err);
-      alert("Something went wrong");
+      alert(err.message);
+    } finally {
       setLoading(false);
     }
   };
 
-  const handleCheckout = async () => {
-    if (!isAuthenticated) {
-      navigate("/login", {
-        state: {
-          from: "/create-booking",
-          bookingState: {
-            venue,
-            selectedDate,
-            selectedSlots,
-            selectedSport,
-            invitees
-          }
-        }
+  const handlePaymentSuccess = async (paymentIntent) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/confirm-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ paymentIntentId: paymentIntent.id }) // Send intent ID
       });
-      return;
-    }
-    if (!selectedDate || selectedSlots.length === 0 || !selectedSport) {
-      alert("Please select date, time slots and sport");
-      return;
-    }
-    if (timeValidationError || hasConflict) return;
-
-    if (useWallet) {
-      setConfirmationModal({ show: true });
-    } else {
-      processCheckout();
+      const data = await res.json();
+      if (res.ok) {
+        setBookingSuccessData(data);
+        setCurrentStep(4);
+      } else {
+        alert("Payment succeeded but booking confirmation failed: " + data.message);
+      }
+    } catch (e) {
+      alert("Verification failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-7xl mx-auto">
-        <button onClick={() => navigate(-1)} className="flex items-center text-gray-600 hover:text-green-600 font-medium mb-6 transition cursor-pointer">
-          <ArrowLeft size={20} className="mr-2" /> Go Back
-        </button>
+  // --- Renders ---
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-md overflow-hidden mb-8">
-              <div className="h-56 w-full overflow-hidden">
-                <img src={venue.primary_image} alt={venue.venue_name} className="w-full h-full object-cover" />
-              </div>
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">{venue.venue_name}</h1>
-                <div className="flex items-center text-gray-600 mb-2">
-                  <MapPin size={18} className="mr-2" />
-                  <span>{venue.location}</span>
-                </div>
-                <div className="flex items-center text-green-600 font-semibold mb-4">
-                  <DollarSign size={18} className="mr-1" />
-                  <span> LKR {venue.price_per_hour}/hour</span>
-                </div>
+  const renderStep1 = () => (
+    <div className="grid lg:grid-cols-3 gap-8 animate-fadeIn">
+      {/* Venue Info & Selection */}
+      <div className="lg:col-span-2 space-y-6">
+        <div className="bg-white rounded-2xl shadow-md overflow-hidden">
+          <div className="h-56 w-full overflow-hidden relative">
+            <img src={venue.primary_image} alt={venue.venue_name} className="w-full h-full object-cover" />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-6">
+              <h1 className="text-3xl font-bold text-white mb-1">{venue.venue_name}</h1>
+              <div className="flex items-center text-white/90">
+                <MapPin size={18} className="mr-2" />
+                <span>{venue.location}</span>
               </div>
             </div>
-
-            <div className="bg-white rounded-2xl shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Booking details</h2>
-
-              {venue.sports && venue.sports.length > 0 && (
-                <div className="mb-6">
-                  <span className="block text-sm font-medium text-gray-700 mb-2">Select Sport</span>
-                  <div className="flex flex-wrap gap-2">
-                    {venue.sports.map((sport) => (
-                      <button
-                        key={sport.sport_id}
-                        onClick={() => setSelectedSport(sport)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedSport?.sport_id === sport.sport_id
-                          ? "bg-green-600 text-white shadow-md ring-2 ring-green-200"
-                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                          }`}
-                      >
-                        {sport.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col gap-4 mb-6">
-                <label className="block max-w-xs">
-                  <span className="block text-sm font-medium text-gray-700 mb-1">Date</span>
-                  <input type="date" value={selectedDate} min={todayString} onChange={(e) => setSelectedDate(e.target.value)} className="w-full border rounded-lg px-3 py-2 text-sm outline-none" />
-                </label>
-              </div>
-
-              <div className="mb-6">
-                <span className="block text-sm font-medium text-gray-700 mb-2">Available Start Times</span>
-                {!selectedDate ? (
-                  <p className="text-sm text-gray-500">Please select a date first.</p>
-                ) : loadingAvailableSlots ? (
-                  <p className="text-sm text-gray-500">Loading slots...</p>
-                ) : availableSlots.length === 0 ? (
-                  <p className="text-sm text-red-500">No available slots for this duration.</p>
-                ) : (
-                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-60 overflow-y-auto p-1">
-                    {availableSlots.map((slot) => (
-                      <button
-                        key={slot.time}
-                        onClick={() => {
-                          if (!slot.available) return;
-                          setSelectedSlots(prev =>
-                            prev.includes(slot.time)
-                              ? prev.filter(t => t !== slot.time)
-                              : [...prev, slot.time].sort()
-                          );
-                        }}
-                        disabled={!slot.available}
-                        className={`px-3 py-3 text-sm font-medium rounded-lg border transition ${!slot.available
-                          ? "bg-red-50 text-red-400 border-red-100 cursor-not-allowed"
-                          : selectedSlots.includes(slot.time)
-                            ? "bg-green-600 text-white border-green-600 ring-4 ring-green-100 shadow-md"
-                            : "bg-white text-gray-700 border-gray-300 hover:border-green-500 hover:bg-green-50"
-                          }`}
-                      >
-                        <div className="flex flex-col items-center">
-                          <span>{formatTime(slot.time)}</span>
-                          <span className="text-[10px] opacity-80 mt-1">
-                            {formatTime(`${String(parseInt(slot.time.split(':')[0]) + 1).padStart(2, '0')}:${slot.time.split(':')[1]}`)}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {timeValidationError && (
-                <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg flex items-start gap-3">
-                  <AlertCircle size={18} className="text-orange-600 mt-0.5" />
-                  <p className="text-sm text-orange-800">{timeValidationError}</p>
-                </div>
-              )}
-              {hasConflict && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                  <AlertCircle size={18} className="text-red-600 mt-0.5" />
-                  <p className="text-sm text-red-800">Time slot conflict.</p>
-                </div>
-              )}
-
-              {/* Invite Friends Section */}
-              <div className="border-t pt-6 mb-6">
-                <div
-                  className="flex items-center justify-between cursor-pointer group"
-                  onClick={() => setShowSplitSection(!showSplitSection)}
-                >
-                  <div className="flex items-center">
-                    <Users size={20} className={`mr-2 transition-colors ${showSplitSection ? 'text-green-600' : 'text-gray-500'}`} />
-                    <h3 className="text-lg font-semibold text-gray-800">Split payment with friends?</h3>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${showSplitSection ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                    {showSplitSection ? 'Enabled' : 'Click to add friends'}
-                  </div>
-                </div>
-
-                {showSplitSection && (
-                  <div className="mt-4">
-                    <p className="text-xs text-gray-500 mb-4 px-1">
-                      Add friends by name or email. The total cost will be split equally among everyone.
-                    </p>
-
-                    <div className="relative mb-4">
-                      <div className="flex items-center border rounded-lg px-3 py-2 bg-gray-50 focus-within:bg-white focus-within:ring-2 ring-green-500 transition">
-                        <Search size={18} className="text-gray-400 mr-2" />
-                        <input
-                          type="text"
-                          placeholder="Search friends by name or email..."
-                          className="bg-transparent w-full outline-none text-sm"
-                          value={inviteQuery}
-                          onChange={(e) => setInviteQuery(e.target.value)}
-                        />
-                      </div>
-
-                      {/* Search Results Dropdown */}
-                      {inviteQuery.length >= 2 && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                          {searchingUsers ? (
-                            <div className="p-3 text-sm text-gray-500">Searching...</div>
-                          ) : (
-                            <>
-                              {/* Existing Users */}
-                              {searchResults.map(u => (
-                                <button
-                                  key={u.user_id}
-                                  onClick={() => handleAddInvitee(u)}
-                                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex flex-col border-b last:border-b-0 cursor-pointer"
-                                >
-                                  <span className="font-medium text-gray-800">{u.full_name}</span>
-                                  <span className="text-xs text-gray-500">{u.email}</span>
-                                </button>
-                              ))}
-
-                              {/* Invite as Guest Option */}
-                              {inviteQuery.includes('@') && inviteQuery.includes('.') &&
-                                !searchResults.some(u => u.email === inviteQuery) &&
-                                !invitees.some(i => i.email === inviteQuery) && (
-                                  <button
-                                    onClick={() => handleAddInvitee({
-                                      user_id: `guest-${Date.now()}`,
-                                      full_name: 'Guest User',
-                                      email: inviteQuery,
-                                      isGuest: true
-                                    })}
-                                    className="w-full text-left px-4 py-2 hover:bg-green-50 flex items-center text-green-700 cursor-pointer"
-                                  >
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">Invite "{inviteQuery}"</span>
-                                      <span className="text-xs opacity-75">Send email invitation</span>
-                                    </div>
-                                  </button>
-                                )}
-
-                              {searchResults.length === 0 && !inviteQuery.includes('@') && (
-                                <div className="p-3 text-sm text-gray-500">No users found</div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Selected Invitees List */}
-                    {invitees.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {invitees.map(invitee => (
-                          <div key={invitee.user_id} className="flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm border border-green-100">
-                            <span>{invitee.isGuest ? invitee.email : invitee.full_name}</span>
-                            <button onClick={() => handleRemoveInvitee(invitee.user_id)} className="ml-2 hover:text-red-500 cursor-pointer">
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Payment & Breakdown */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Cost Breakdown</h3>
-
-                <div className="space-y-2 text-sm text-gray-600 mb-4">
-                  <div className="flex justify-between">
-                    <span>Venue Total</span>
-                    <span className="flex flex-col items-end">
-                      {isDynamic && <span className="text-xs text-orange-600 font-bold">Peak Pricing Active</span>}
-                      {calculatingPrice ? "..." : `LKR ${totalPrice.toFixed(2)}`}
-                      {isDynamic && <span className="text-xs text-gray-400 line-through">LKR {basePrice.toFixed(2)}</span>}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Friends Invited</span>
-                    <span>{invitees.length}</span>
-                  </div>
-                  <div className="flex justify-between font-medium text-gray-900 bg-gray-50 p-2 rounded">
-                    <span>Your Share ({invitees.length > 0 ? `1/${totalPeople}` : "Full"})</span>
-                    <span>LKR {sharePrice.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* Wallet Balance Checkbox */}
-                <div className="flex items-center mb-6 p-4 border border-green-200 bg-green-50 rounded-lg">
-                  <Wallet className="text-green-600 mr-3" size={24} />
-                  <div className="flex-1">
-                    <p className="font-semibold text-green-900">Playlink Points</p>
-                    <p className="text-xs text-green-700">Use your wallet balance to pay</p>
-                  </div>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={useWallet}
-                      onChange={(e) => setUseWallet(e.target.checked)}
-                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                    />
-                    <span className="ml-2 text-sm font-medium text-green-900">Apply</span>
-                  </label>
-                </div>
-
-                <button
-                  onClick={handleCheckout}
-                  disabled={loading || hasConflict || !!timeValidationError}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
-                >
-                  {loading ? "Processing..." : `Pay LKR ${(useWallet ? Math.max(0, totalPrice - 999999) : totalPrice).toFixed(0) === '0' ? 'via Points' : 'via Stripe'}`}
-                </button>
-              </div>
-
-            </div>
-
-            <ReviewSection venueId={venue.venue_id} />
           </div>
-
-          <div className="lg:col-span-1">
-            {/* Booked Slots */}
-            {selectedDate && (
-              <div className="bg-white rounded-2xl shadow-md p-6 sticky top-10">
-                <h3 className="font-bold text-gray-900 mb-4">Unavailable Times</h3>
-                {loadingSlots ? <p>Loading...</p> : (
-                  bookedSlots.length === 0 ? <p className="text-green-600 text-sm">Full availability.</p> :
-                    bookedSlots.map((s, i) => (
-                      <div key={i} className="text-xs bg-red-50 p-2 mb-1 rounded text-red-700">
-                        {new Date(s.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(s.booking_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    ))
-                )}
-
-                {/* Cancellation Policy */}
-                <div className="mt-6 border-t pt-4">
-                  <h3 className="font-bold text-gray-900 mb-3 flex items-center text-sm">
-                    <Shield size={16} className="mr-2 text-red-500" />
-                    Cancellation Policy
-                  </h3>
-                  <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-sm">
-                    {venue.custom_cancellation_policy ? (
-                      <>
-                        <p className="font-semibold text-red-800 mb-1">Custom Policy</p>
-                        <p className="text-red-700 text-xs">{venue.custom_cancellation_policy}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="font-semibold text-red-800 mb-1">{venue.policy_name || "Standard Policy"}</p>
-                        <p className="text-red-700 text-xs">
-                          {venue.refund_percentage ? (
-                            <>
-                              LKR {((totalPrice * (100 - Number(venue.refund_percentage))) / 100).toFixed(2)} penalty if cancelled
-                              {venue.hours_before_start > 0 ? ` within ${venue.hours_before_start} hours of start time.` : " anytime."}
-                            </>
-                          ) : (
-                            "Review policy with venue owner."
-                          )}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
+          <div className="p-6 flex justify-between items-center">
+            <div>
+              <p className="text-gray-500 text-sm">Hourly Rate</p>
+              <div className="flex items-center text-green-600 font-bold text-xl">
+                <DollarSign size={20} className="mr-1" />
+                <span>LKR {venue.price_per_hour}</span>
+              </div>
+            </div>
+            {/* Sport Selection */}
+            {venue.sports?.length > 0 && (
+              <div className="flex gap-2">
+                {venue.sports.map((sport) => (
+                  <button
+                    key={sport.sport_id}
+                    onClick={() => setSelectedSport(sport)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition ${selectedSport?.sport_id === sport.sport_id
+                      ? "bg-green-600 text-white shadow-md ring-2 ring-green-200"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                  >
+                    {sport.name}
+                  </button>
+                ))}
               </div>
             )}
           </div>
         </div>
+
+        <div className="bg-white rounded-2xl shadow-md p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Select Date & Time</h2>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+            <input type="date" value={selectedDate} min={todayString} onChange={(e) => setSelectedDate(e.target.value)} className="w-full border rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 ring-green-500" />
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Available Slots</label>
+            {!selectedDate ? (
+              <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed">Select a date to view slots</div>
+            ) : loadingAvailableSlots ? (
+              <div className="text-center py-8 text-gray-500">Loading availability...</div>
+            ) : availableSlots.length === 0 ? (
+              <div className="text-center py-8 text-red-500 bg-red-50 rounded-lg">No slots available.</div>
+            ) : (
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
+                {availableSlots.map((slot) => (
+                  <button
+                    key={slot.time}
+                    onClick={() => {
+                      if (!slot.available) return;
+                      setSelectedSlots(prev => prev.includes(slot.time) ? prev.filter(t => t !== slot.time) : [...prev, slot.time].sort());
+                    }}
+                    disabled={!slot.available}
+                    className={`p-3 rounded-xl border2 transition flex flex-col items-center justify-center aspect-square ${!slot.available ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed" :
+                        selectedSlots.includes(slot.time) ? "bg-green-600 text-white border-green-600 shadow-lg scale-105" :
+                          "bg-white text-gray-700 border-gray-200 hover:border-green-400 hover:bg-green-50"
+                      }`}
+                  >
+                    <span className="font-bold">{formatTime(slot.time)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            onClick={goToSplitStep}
+            disabled={!selectedDate || selectedSlots.length === 0}
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-green-200 transition transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next Step
+          </button>
+        </div>
       </div>
 
-      {confirmationModal.show && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 transform transition-all scale-100">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Payment</h3>
-            <p className="text-gray-600 mb-6">
-              You are about to pay using your Playlink Points balance. Are you sure you want to proceed?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setConfirmationModal({ show: false })}
-                className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={processCheckout}
-                className="px-5 py-2.5 text-white bg-green-600 hover:bg-green-700 rounded-lg font-medium shadow-md transition"
-              >
-                Yes, Pay with Points
-              </button>
+      {/* Side Panel: booked slots */}
+      <div className="lg:col-span-1">
+        {selectedDate && <div className="bg-white rounded-2xl shadow-md p-6 sticky top-24">
+          <h3 className="font-bold text-gray-900 mb-4">Unavailable Times</h3>
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+            {loadingSlots ? <p>Loading...</p> : bookedSlots.length === 0 ? <p className="text-green-600 text-sm">Full availability!</p> :
+              bookedSlots.map((s, i) => (
+                <div key={i} className="flex items-center text-xs bg-red-50 p-3 rounded-lg text-red-700 border border-red-100">
+                  <Clock size={14} className="mr-2" />
+                  {new Date(s.booking_start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(s.booking_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              ))
+            }
+          </div>
+        </div>}
+      </div>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 animate-fadeIn">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Split Payment?</h2>
+
+      {!isSplitting && (
+        <div className="flex flex-col gap-4">
+          <button onClick={() => setIsSplitting('yes')} className="w-full p-6 border-2 border-green-100 bg-green-50 rounded-xl hover:bg-green-100 hover:border-green-300 transition flex items-center justify-between group">
+            <div className="flex items-center">
+              <div className="w-12 h-12 rounded-full bg-green-200 flex items-center justify-center text-green-700 mr-4 group-hover:bg-white group-hover:scale-110 transition"><Users size={24} /></div>
+              <div className="text-left">
+                <h3 className="font-bold text-green-900 text-lg">Yes, split with friends</h3>
+                <p className="text-green-700 text-sm">Invite friends and split the cost equally.</p>
+              </div>
             </div>
+          </button>
+          <button onClick={() => { setIsSplitting('no'); goToPaymentStep(); }} className="w-full p-6 border-2 border-gray-100 bg-gray-50 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition flex items-center justify-between group">
+            <div className="flex items-center">
+              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-4 group-hover:bg-white group-hover:scale-110 transition"><Wallet size={24} /></div>
+              <div className="text-left">
+                <h3 className="font-bold text-gray-900 text-lg">No, I'll pay full amount</h3>
+                <p className="text-gray-600 text-sm">Pay the total amount yourself.</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {isSplitting === 'yes' && (
+        <div className="animate-fadeIn">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Search Players</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={inviteQuery}
+                onChange={(e) => setInviteQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-50 focus:bg-white focus:ring-2 ring-green-500 outline-none transition"
+              />
+              {searchResults.length > 0 && <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border z-10 max-h-48 overflow-y-auto">
+                {searchResults.map(u => (
+                  <button key={u.user_id} onClick={() => handleAddInvitee(u)} className="w-full text-left px-4 py-3 hover:bg-green-50 flex flex-col border-b last:border-b-0">
+                    <span className="font-bold text-gray-800">{u.full_name}</span>
+                    <span className="text-xs text-gray-500">{u.email}</span>
+                  </button>
+                ))}
+              </div>}
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Invited Players ({invitees.length})</h3>
+            <div className="flex flex-wrap gap-2">
+              {invitees.length === 0 && <p className="text-sm text-gray-400 italic">No invitees yet.</p>}
+              {invitees.map(invitee => (
+                <div key={invitee.user_id} className="flex items-center bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-medium">
+                  {invitee.full_name || invitee.email}
+                  <button onClick={() => handleRemoveInvitee(invitee.user_id)} className="ml-2 text-green-600 hover:text-red-500"><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-between gap-4 mt-8 pt-6 border-t">
+            <button onClick={() => setIsSplitting(null)} className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Back</button>
+            <button onClick={goToPaymentStep} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-bold shadow-md transition">Continue to Payment</button>
           </div>
         </div>
       )}
+    </div>
+  );
+
+  const renderStep3 = () => (
+    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 animate-fadeIn">
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment</h2>
+      <div className="bg-green-50 p-4 rounded-xl flex justify-between items-center mb-6 border border-green-100">
+        <div>
+          <p className="text-gray-500 text-sm">Total Amount</p>
+          <p className="text-2xl font-bold text-green-700">LKR {calculatedPrice.toFixed(2)}</p>
+        </div>
+        {invitees.length > 0 && (
+          <div className="text-right">
+            <p className="text-gray-500 text-sm">Your Share</p>
+            <p className="text-lg font-semibold text-green-700">LKR {(calculatedPrice / (invitees.length + 1)).toFixed(2)}</p>
+          </div>
+        )}
+      </div>
+
+      {clientSecret && (
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+          <PaymentForm amount={calculatedPrice} onSuccess={handlePaymentSuccess} onBack={() => setCurrentStep(2)} />
+        </Elements>
+      )}
+    </div>
+  );
+
+  const renderStep4 = () => (
+    <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-10 text-center animate-fadeIn">
+      <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <CheckCircle size={48} strokeWidth={3} />
+      </div>
+      <h2 className="text-3xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
+      <p className="text-gray-600 mb-8">Your booking has been confirmed.</p>
+
+      <div className="bg-gray-50 rounded-xl p-6 mb-8 text-left space-y-3">
+        <div className="flex justify-between">
+          <span className="text-gray-500">Venue</span>
+          <span className="font-semibold text-gray-900">{venue.venue_name}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Date</span>
+          <span className="font-semibold text-gray-900">{selectedDate}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-gray-500">Amount Paid</span>
+          <span className="font-semibold text-green-700">LKR {calculatedPrice.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div className="flex gap-4 justify-center">
+        <button onClick={() => navigate('/home')} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition">Home</button>
+        <button onClick={() => navigate('/my-bookings')} className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md transition">View Bookings</button>
+      </div>
+      <p className="text-xs text-gray-400 mt-6">Redirecting in {countdown}s...</p>
+    </div>
+  );
+
+  if (!venue) return null;
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20 pt-4">
+      <BookingProgressBar currentStep={currentStep} />
+      <div className="max-w-7xl mx-auto px-4">
+        {currentStep === 1 && renderStep1()}
+        {currentStep === 2 && renderStep2()}
+        {currentStep === 3 && renderStep3()}
+        {currentStep === 4 && renderStep4()}
+      </div>
     </div>
   );
 };
