@@ -197,7 +197,7 @@ const CreateBooking = () => {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else if (currentStep === 4 && countdown === 0) {
-      navigate('/home');
+      navigate('/');
     }
   }, [currentStep, countdown, navigate]);
 
@@ -276,24 +276,17 @@ const CreateBooking = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to init payment");
 
-      // Safety check if fully covered happened unexpectedly (should be caught by button logic, but good for robust handling)
+      // Safety check if fully covered happened unexpectedly
       if (data.fullyCovered) {
-        // This should match confirmBookingWithPoints logic roughly, or we just call the confirm endpoint now?
-        // Since createPaymentIntent returned success for points, we might just need to confirm?
-        // Actually my backend createPaymentIntent returns { clientSecret: null, fullyCovered: true } 
-        // but DOES NOT confirm the booking. 
-        // So if we get here, we should probably call handleBookWithPoints() instead?
-        // OR, change backend to confirm if fully covered? 
-        // Let's stick to: if fully covered, frontend calls `handleBookWithPoints`.
-        // If we are here, we expected a client secret.
         alert("Unexpected state: Payment fully covered by points. Please use 'Book Now' button.");
-        return;
+        return false;
       }
 
       setClientSecret(data.clientSecret);
-      // We don't advance step here, we just show the form in Step 3
+      return true;
     } catch (err) {
       alert(err.message);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -308,9 +301,16 @@ const CreateBooking = () => {
 
   const [showStripeForm, setShowStripeForm] = useState(false);
 
-  const handleProceedToPayment = () => {
-    initStripePayment();
-    setShowStripeForm(true);
+  const handleProceedToPayment = async () => {
+    // If we already have a client secret, just show the form
+    if (clientSecret) {
+      setShowStripeForm(true);
+      return;
+    }
+    const success = await initStripePayment();
+    if (success) {
+      setShowStripeForm(true);
+    }
   };
 
   const handlePaymentSuccess = async (paymentIntent) => {
@@ -569,8 +569,8 @@ const CreateBooking = () => {
         </div>
 
         {!showStripeForm && !isFullyCovered && (
-          <button onClick={handleProceedToPayment} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition">
-            Proceed to Payment (LKR {payAmount.toFixed(2)})
+          <button onClick={handleProceedToPayment} disabled={loading} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition disabled:opacity-50 flex justify-center items-center">
+            {loading ? "Processing..." : `Proceed to Payment (LKR ${payAmount.toFixed(2)})`}
           </button>
         )}
 
@@ -586,7 +586,7 @@ const CreateBooking = () => {
               <h3 className="font-bold text-gray-700">Card Payment</h3>
               <button onClick={() => setShowStripeForm(false)} className="text-sm text-gray-500 hover:underline">Change Method</button>
             </div>
-            <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+            <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret }}>
               <PaymentForm amount={payAmount} onSuccess={handlePaymentSuccess} onBack={() => setShowStripeForm(false)} />
             </Elements>
           </div>
@@ -619,7 +619,7 @@ const CreateBooking = () => {
       </div>
 
       <div className="flex gap-4 justify-center">
-        <button onClick={() => navigate('/home')} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition">Home</button>
+        <button onClick={() => navigate('/')} className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition">Home</button>
         <button onClick={() => navigate('/my-bookings')} className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-md transition">View Bookings</button>
       </div>
       <p className="text-xs text-gray-400 mt-6">Redirecting in {countdown}s...</p>

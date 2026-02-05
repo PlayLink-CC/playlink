@@ -80,12 +80,14 @@ export default function PaymentForm({ onSuccess, onBack, amount }) {
     };
 
     const paymentElementOptions = {
-        layout: "tabs",
+        // layout: "tabs", // Commenting out to see if default works
     };
 
     return (
         <form id="payment-form" onSubmit={handleSubmit} className="w-full">
-            <PaymentElement id="payment-element" options={paymentElementOptions} />
+            <div style={{ minHeight: "200px" }}>
+                <PaymentElement id="payment-element" options={paymentElementOptions} onReady={() => console.log("PaymentElement Ready")} />
+            </div>
 
             {/* Cancellation Policy and Summary could be here too, but let's keep it simple */}
 
