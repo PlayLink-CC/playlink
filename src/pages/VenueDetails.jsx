@@ -86,8 +86,64 @@ const VenueDetails = () => {
     const [showBlockModal, setShowBlockModal] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [blockForm, setBlockForm] = useState({ date: "", startTime: "", duration: "1", sportId: "" });
+    const [activeTab, setActiveTab] = useState('details');
+    const [staffList, setStaffList] = useState([]);
+    const [newStaffEmail, setNewStaffEmail] = useState("");
+
+    const fetchStaff = async () => {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/staff`, {
+                credentials: "include"
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setStaffList(data);
+            }
+        } catch (error) {
+            console.error("Error fetching staff:", error);
+        }
+    };
+
+    const handleAddStaff = async () => {
+        if (!newStaffEmail.trim()) return toast.error("Please enter an email");
+
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/staff`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ email: newStaffEmail })
+            });
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.message || "Failed to add staff");
+
+            toast.success("Staff added successfully");
+            setNewStaffEmail("");
+            fetchStaff();
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
+
+    const handleRemoveStaff = async (userId) => {
+        try {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/staff/${userId}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+
+            if (!res.ok) throw new Error("Failed to remove staff");
+
+            toast.success("Staff removed successfully");
+            fetchStaff();
+        } catch (error) {
+            toast.error(error.message);
+        }
+    };
 
     const handleEditClick = () => {
+        // ... previous detail loading ...
         setEditForm({
             name: venue.venue_name,
             description: venue.description,
@@ -101,6 +157,8 @@ const VenueDetails = () => {
             custom_hours_before_start: venue.custom_hours_before_start || 0,
             use_custom_policy: !!venue.custom_cancellation_policy
         });
+        setActiveTab('details');
+        fetchStaff();
         setShowEditModal(true);
     };
 
@@ -434,160 +492,253 @@ const VenueDetails = () => {
                         <div className="bg-white rounded-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
                             <h2 className="text-xl font-bold mb-4">Edit Venue</h2>
                             <form onSubmit={handleEditSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Venue Name</label>
-                                    <input
-                                        type="text"
-                                        value={editForm.name}
-                                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Description</label>
-                                    <textarea
-                                        rows={3}
-                                        value={editForm.description}
-                                        onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Price per Hour</label>
-                                    <input
-                                        type="number"
-                                        min="1000"
-                                        value={editForm.pricePerHour}
-                                        onChange={e => setEditForm({ ...editForm, pricePerHour: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
-                                        placeholder="1000"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Address</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.address}
-                                            onChange={e => setEditForm({ ...editForm, address: e.target.value })}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">City</label>
-                                        <input
-                                            type="text"
-                                            value={editForm.city}
-                                            onChange={e => setEditForm({ ...editForm, city: e.target.value })}
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
-                                    <div className="grid grid-cols-2 gap-2 border p-3 rounded-lg max-h-40 overflow-y-auto">
-                                        {allAmenities.map((amenity) => (
-                                            <label key={amenity.amenity_id} className="flex items-center space-x-2 cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={editForm.amenityIds?.includes(amenity.amenity_id)}
-                                                    onChange={(e) => {
-                                                        const id = amenity.amenity_id;
-                                                        setEditForm(prev => {
-                                                            const newIds = e.target.checked
-                                                                ? [...(prev.amenityIds || []), id]
-                                                                : (prev.amenityIds || []).filter(aid => aid !== id);
-                                                            return { ...prev, amenityIds: newIds };
-                                                        });
-                                                    }}
-                                                    className="rounded text-green-600 focus:ring-green-500"
-                                                />
-                                                <span className="text-sm text-gray-700">{amenity.name}</span>
-                                            </label>
-                                        ))}
-                                    </div>
+                                <div className="border-b border-gray-200 mb-4">
+                                    <nav className="-mb-px flex space-x-8">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('details')}
+                                            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'details'
+                                                ? 'border-green-500 text-green-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                }`}
+                                        >
+                                            Venue Details
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveTab('staff')}
+                                            className={`whitespace-nowrap pb-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'staff'
+                                                ? 'border-green-500 text-green-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                                }`}
+                                        >
+                                            Staff Management
+                                        </button>
+                                    </nav>
                                 </div>
 
-                                <div className="border-t pt-4">
-                                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Cancellation Policy</h3>
+                                {activeTab === 'details' ? (
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-4">
-                                            <label className="flex items-center gap-2 cursor-pointer">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Venue Name</label>
+                                            <input
+                                                type="text"
+                                                value={editForm.name}
+                                                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Description</label>
+                                            <textarea
+                                                rows={3}
+                                                value={editForm.description}
+                                                onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Price per Hour</label>
+                                            <input
+                                                type="number"
+                                                min="1000"
+                                                value={editForm.pricePerHour}
+                                                onChange={e => setEditForm({ ...editForm, pricePerHour: e.target.value })}
+                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
+                                                placeholder="1000"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">Address</label>
                                                 <input
-                                                    type="radio"
-                                                    name="policy_type"
-                                                    checked={!editForm.use_custom_policy}
-                                                    onChange={() => setEditForm({ ...editForm, use_custom_policy: false })}
-                                                    className="text-green-600 focus:ring-green-500"
+                                                    type="text"
+                                                    value={editForm.address}
+                                                    onChange={e => setEditForm({ ...editForm, address: e.target.value })}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
                                                 />
-                                                <span className="text-sm">Standard Policy</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 cursor-pointer">
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">City</label>
                                                 <input
-                                                    type="radio"
-                                                    name="policy_type"
-                                                    checked={editForm.use_custom_policy}
-                                                    onChange={() => setEditForm({ ...editForm, use_custom_policy: true })}
-                                                    className="text-green-600 focus:ring-green-500"
+                                                    type="text"
+                                                    value={editForm.city}
+                                                    onChange={e => setEditForm({ ...editForm, city: e.target.value })}
+                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2"
                                                 />
-                                                <span className="text-sm">Custom Policy</span>
-                                            </label>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
+                                            <div className="grid grid-cols-2 gap-2 border p-3 rounded-lg max-h-40 overflow-y-auto">
+                                                {allAmenities.map((amenity) => (
+                                                    <label key={amenity.amenity_id} className="flex items-center space-x-2 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={editForm.amenityIds?.includes(amenity.amenity_id)}
+                                                            onChange={(e) => {
+                                                                const id = amenity.amenity_id;
+                                                                setEditForm(prev => {
+                                                                    const newIds = e.target.checked
+                                                                        ? [...(prev.amenityIds || []), id]
+                                                                        : (prev.amenityIds || []).filter(aid => aid !== id);
+                                                                    return { ...prev, amenityIds: newIds };
+                                                                });
+                                                            }}
+                                                            className="rounded text-green-600 focus:ring-green-500"
+                                                        />
+                                                        <span className="text-sm text-gray-700">{amenity.name}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
                                         </div>
 
-                                        {!editForm.use_custom_policy ? (
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-700 mb-1">Select Policy</label>
-                                                <select
-                                                    value={editForm.cancellation_policy_id}
-                                                    onChange={e => setEditForm({ ...editForm, cancellation_policy_id: e.target.value })}
-                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
-                                                >
-                                                    {allPolicies.map(p => (
-                                                        <option key={p.policy_id} value={p.policy_id}>
-                                                            {p.name} ({p.refund_percentage}% refund, {p.hours_before_start}h lead time)
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                                                <div>
-                                                    <label className="block text-xs font-medium text-gray-600">Policy Description</label>
-                                                    <textarea
-                                                        rows={2}
-                                                        value={editForm.custom_cancellation_policy}
-                                                        onChange={e => setEditForm({ ...editForm, custom_cancellation_policy: e.target.value })}
-                                                        placeholder="e.g., No refunds within 24 hours of booking."
-                                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
-                                                    />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-gray-600">Refund %</label>
+                                        <div className="border-t pt-4">
+                                            <h3 className="text-sm font-semibold text-gray-900 mb-2">Cancellation Policy</h3>
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-4">
+                                                    <label className="flex items-center gap-2 cursor-pointer">
                                                         <input
-                                                            type="number"
-                                                            min="0"
-                                                            max="100"
-                                                            value={editForm.custom_refund_percentage}
-                                                            onChange={e => setEditForm({ ...editForm, custom_refund_percentage: e.target.value })}
-                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                            type="radio"
+                                                            name="policy_type"
+                                                            checked={!editForm.use_custom_policy}
+                                                            onChange={() => setEditForm({ ...editForm, use_custom_policy: false })}
+                                                            className="text-green-600 focus:ring-green-500"
                                                         />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-gray-600">Lead Time (Hours)</label>
+                                                        <span className="text-sm">Standard Policy</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-2 cursor-pointer">
                                                         <input
-                                                            type="number"
-                                                            min="0"
-                                                            value={editForm.custom_hours_before_start}
-                                                            onChange={e => setEditForm({ ...editForm, custom_hours_before_start: e.target.value })}
-                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                            type="radio"
+                                                            name="policy_type"
+                                                            checked={editForm.use_custom_policy}
+                                                            onChange={() => setEditForm({ ...editForm, use_custom_policy: true })}
+                                                            className="text-green-600 focus:ring-green-500"
                                                         />
-                                                    </div>
+                                                        <span className="text-sm">Custom Policy</span>
+                                                    </label>
                                                 </div>
+
+                                                {!editForm.use_custom_policy ? (
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-700 mb-1">Select Policy</label>
+                                                        <select
+                                                            value={editForm.cancellation_policy_id}
+                                                            onChange={e => setEditForm({ ...editForm, cancellation_policy_id: e.target.value })}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                        >
+                                                            {allPolicies.map(p => (
+                                                                <option key={p.policy_id} value={p.policy_id}>
+                                                                    {p.name} ({p.refund_percentage}% refund, {p.hours_before_start}h lead time)
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600">Policy Description</label>
+                                                            <textarea
+                                                                rows={2}
+                                                                value={editForm.custom_cancellation_policy}
+                                                                onChange={e => setEditForm({ ...editForm, custom_cancellation_policy: e.target.value })}
+                                                                placeholder="e.g., No refunds within 24 hours of booking."
+                                                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                            />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-3">
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-600">Refund %</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    max="100"
+                                                                    value={editForm.custom_refund_percentage}
+                                                                    onChange={e => setEditForm({ ...editForm, custom_refund_percentage: e.target.value })}
+                                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-gray-600">Lead Time (Hours)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    value={editForm.custom_hours_before_start}
+                                                                    onChange={e => setEditForm({ ...editForm, custom_hours_before_start: e.target.value })}
+                                                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                            <h3 className="text-sm font-semibold text-gray-900 mb-2">Add New Staff</h3>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="email"
+                                                    placeholder="Enter employee gmail"
+                                                    value={newStaffEmail}
+                                                    onChange={(e) => setNewStaffEmail(e.target.value)}
+                                                    className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 border p-2 text-sm"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddStaff}
+                                                    className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                >
+                                                    Add
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="text-sm font-semibold text-gray-900 mb-2">Current Staff ({staffList.length})</h3>
+                                            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+                                                <table className="min-w-full divide-y divide-gray-300">
+                                                    <thead className="bg-gray-50">
+                                                        <tr>
+                                                            <th scope="col" className="py-2 pl-4 pr-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                                            <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                                            <th scope="col" className="relative py-2 pl-3 pr-4 sm:pr-6">
+                                                                <span className="sr-only">Actions</span>
+                                                            </th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-gray-200 bg-white">
+                                                        {staffList.length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan="3" className="py-4 text-center text-sm text-gray-500">
+                                                                    No staff members yet.
+                                                                </td>
+                                                            </tr>
+                                                        ) : (
+                                                            staffList.map((staff) => (
+                                                                <tr key={staff.user_id}>
+                                                                    <td className="whitespace-nowrap py-2 pl-4 pr-3 text-sm font-medium text-gray-900">{staff.full_name}</td>
+                                                                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">{staff.email}</td>
+                                                                    <td className="relative whitespace-nowrap py-2 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleRemoveStaff(staff.user_id)}
+                                                                            className="text-red-600 hover:text-red-900"
+                                                                        >
+                                                                            Remove
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Loader2 } fr
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
-const VenueCalendar = () => {
+const VenueCalendar = ({ isEmployeeView = false }) => {
     const { user } = useAuth();
     const dateInputRef = useRef(null);
     const [view, setView] = useState("week"); // 'day', 'week', 'month'
@@ -595,12 +595,14 @@ const VenueCalendar = () => {
                                 >
                                     Add Walk-in
                                 </button>
-                                <button
-                                    onClick={() => setWalkInDetails({ ...walkInDetails, type: 'BLOCK' })}
-                                    className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${walkInDetails.type === 'BLOCK' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    Block Slot
-                                </button>
+                                {!isEmployeeView && (
+                                    <button
+                                        onClick={() => setWalkInDetails({ ...walkInDetails, type: 'BLOCK' })}
+                                        className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${walkInDetails.type === 'BLOCK' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                    >
+                                        Block Slot
+                                    </button>
+                                )}
                             </div>
 
                             <div className="space-y-4">
@@ -740,10 +742,12 @@ const VenueCalendar = () => {
                                         {new Date(selectedBooking.booking_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
-                                <div className="flex justify-between py-2 border-b border-gray-100">
-                                    <span className="text-gray-500">Amount</span>
-                                    <span className="font-medium text-gray-900">{formatCurrency(selectedBooking.total_amount)}</span>
-                                </div>
+                                {!isEmployeeView && (
+                                    <div className="flex justify-between py-2 border-b border-gray-100">
+                                        <span className="text-gray-500">Amount</span>
+                                        <span className="font-medium text-gray-900">{formatCurrency(selectedBooking.total_amount)}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between py-2 border-b border-gray-100">
                                     <span className="text-gray-500">Sport</span>
                                     <span className="font-medium text-gray-900">{selectedBooking.sport_name || 'N/A'}</span>

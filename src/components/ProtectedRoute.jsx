@@ -42,6 +42,9 @@ const ProtectedRoute = ({ allowedRoles = [], children }) => {
         } else if (user.accountType === 'VENUE_OWNER') {
             // Venue Owner trying to access restricted page -> Redirect to Venue Dashboard
             return <Navigate to="/venue-dashboard" replace />;
+        } else if (user.accountType === 'EMPLOYEE') {
+            // Employee trying to access restricted page -> Redirect to Employee Dashboard
+            return <Navigate to="/employee/dashboard" replace />;
         } else {
             // Fallback
             return <Navigate to="/" replace />;
