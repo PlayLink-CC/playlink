@@ -17,7 +17,7 @@ if (!STRIPE_KEY) {
 const stripePromise = loadStripe(STRIPE_KEY || "pk_test_placeholder");
 
 const CreateBooking = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, fetchWalletBalance } = useAuth();
   const { state } = useLocation();
   const navigate = useNavigate();
 
@@ -315,6 +315,7 @@ const CreateBooking = () => {
       if (res.ok) {
         setBookingSuccessData(data);
         setCurrentStep(4);
+        fetchWalletBalance();
       } else {
         alert(data.message || "Booking failed");
       }
@@ -339,6 +340,7 @@ const CreateBooking = () => {
       if (res.ok) {
         setBookingSuccessData(data);
         setCurrentStep(4);
+        fetchWalletBalance();
       } else {
         alert("Payment succeeded but booking failed to confirm: " + (data.message || data.error || "Unknown error"));
       }
