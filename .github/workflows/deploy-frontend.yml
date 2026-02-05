@@ -14,11 +14,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node_version: '22'
+          node_version: '22' # Ensures Vite 7 build works correctly
 
       - name: Install and Build
-        # ADD 'working-directory' TO POINT TO YOUR FRONTEND FOLDER
-        working-directory: ./playlink 
         run: |
           npm install
           npm run build
@@ -33,9 +31,12 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # 1. Sync the repo folder located at /home/ubuntu/playlink
             cd /home/ubuntu/playlink
             git fetch origin main
             git reset --hard origin/main
+            
+            # 2. Wipe the live web directory for the fresh build
             sudo rm -rf /var/www/html/*
             sudo chown -R ubuntu:ubuntu /var/www/html
 
@@ -45,10 +46,9 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # UPDATE SOURCE PATH TO INCLUDE YOUR FOLDER NAME
-          source: "playlink/dist/" 
+          source: "dist/" # This refers to the dist folder created in the GitHub Runner root
           target: "/var/www/html"
-          strip_components: 2 # Increased to 2 to strip 'playlink' and 'dist'
+          strip_components: 1 # Takes the CONTENTS of dist/ and puts them into /var/www/html
           rm: false 
 
       - name: Restart Nginx
