@@ -11,12 +11,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node_version: '22' # Fixes the crypto.hash error by using a modern version
+
       - name: Install and Build
         run: |
           npm install
           npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_STRIPE_PUBLIC_KEY: ${{ secrets.VITE_STRIPE_PUBLIC_KEY }} # Bakes the key into the build
 
       - name: Sync Server Repo and Clean Old Files
         uses: appleboy/ssh-action@master
@@ -25,12 +31,9 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 1. Sync the repo folder (Fixes the missing files issue)
             cd /home/ubuntu/playlink
             git fetch origin main
             git reset --hard origin/main
-            
-            # 2. Clean the web directory for the new build
             sudo rm -rf /var/www/html/*
             sudo chown -R ubuntu:ubuntu /var/www/html
 
