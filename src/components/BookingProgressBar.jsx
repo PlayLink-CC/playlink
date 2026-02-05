@@ -3,8 +3,8 @@ import { Check } from 'lucide-react';
 
 const BookingProgressBar = ({ currentStep }) => {
     const steps = [
-        { id: 1, label: "Review Booking" },
-        { id: 2, label: "Invite Players" },
+        { id: 1, label: "Selection" },
+        { id: 2, label: "Split Options" },
         { id: 3, label: "Payment" },
         { id: 4, label: "Confirmation" }
     ];
