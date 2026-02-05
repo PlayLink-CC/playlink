@@ -16,6 +16,14 @@ import {
   Trophy
 } from "lucide-react";
 
+// Stripe
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+import PaymentForm from "../components/PaymentForm";
+
+const STRIPE_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+const stripePromise = loadStripe(STRIPE_KEY || "pk_test_placeholder");
+
 const statusClasses = (status) => {
   switch (status) {
     case "CONFIRMED":
@@ -64,6 +72,11 @@ const BookingSummary = () => {
   // Modal States
   const [cancelModal, setCancelModal] = useState({ open: false, booking: null, refundAmount: 0 });
   const [rescheduleModal, setRescheduleModal] = useState({ open: false, booking: null, start: "", time: "" });
+
+  // Stripe embedded payment states
+  const [clientSecret, setClientSecret] = useState("");
+  const [stripeAmount, setStripeAmount] = useState(0);
+  const [showCardModal, setShowCardModal] = useState(false);
 
   const sessionId = searchParams.get("session_id");
   const cancelled = searchParams.get("cancelled");
@@ -155,22 +168,35 @@ const BookingSummary = () => {
       const data = await res.json();
 
       if (res.ok) {
-        if (data.checkoutUrl) {
-          window.location.href = data.checkoutUrl;
+        if (data.clientSecret) {
+          // Card payment via embedded Element
+          setClientSecret(data.clientSecret);
+          setStripeAmount(data.amount);
+          setShowCardModal(true);
         } else {
+          // Points payment successful
           toast.success("Payment successful!");
           await loadBookings();
           setPayingShareId(null);
           fetchWalletBalance();
         }
       } else {
-        toast.error(data.message || "Payment failed");
+        toast.error(data.message || data.error || "Payment failed");
         setPayingShareId(null);
       }
     } catch (e) {
       toast.error("Error processing payment");
       setPayingShareId(null);
     }
+  };
+
+  const handleSharePaymentSuccess = async () => {
+    toast.success("Share paid successfully!");
+    setShowCardModal(false);
+    setClientSecret("");
+    setPayingShareId(null);
+    await loadBookings();
+    fetchWalletBalance();
   };
 
   const openCancelModal = (booking) => {
@@ -619,6 +645,47 @@ const BookingSummary = () => {
       )}
 
 
+      {/* Card Payment Modal */}
+      {showCardModal && clientSecret && (
+        <div className="fixed inset-0 flex items-center justify-center bg-gray-900/60 backdrop-blur-md z-[60] p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full overflow-hidden animate-in zoom-in-95 duration-200 p-8 border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-black text-gray-900 tracking-tight">Pay Share</h3>
+              <button
+                onClick={() => setShowCardModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Share Amount</span>
+                <p className="text-2xl font-black text-green-600 tracking-tighter">
+                  <span className="text-xs font-normal italic opacity-60 mr-1">LKR</span>
+                  {Number(stripeAmount).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {!STRIPE_KEY ? (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm">
+                <p className="font-bold mb-1">Stripe Configuration Missing</p>
+                <p>Please add <code>VITE_STRIPE_PUBLIC_KEY</code> to your `.env` file.</p>
+              </div>
+            ) : (
+              <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+                <PaymentForm
+                  amount={Number(stripeAmount).toFixed(2)}
+                  onSuccess={handleSharePaymentSuccess}
+                  onBack={() => setShowCardModal(false)}
+                />
+              </Elements>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
