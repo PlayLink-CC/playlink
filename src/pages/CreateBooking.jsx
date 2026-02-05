@@ -46,10 +46,13 @@ const CreateBooking = () => {
   const [isSplitting, setIsSplitting] = useState(null); // null, 'yes', 'no'
 
   // --- Payment State ---
+  // --- Payment State ---
   const [clientSecret, setClientSecret] = useState("");
   const [paymentIntentId, setPaymentIntentId] = useState("");
   const [bookingSuccessData, setBookingSuccessData] = useState(null);
   const [countdown, setCountdown] = useState(20);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [useWallet, setUseWallet] = useState(false);
 
   // --- Effects ---
 
@@ -145,6 +148,25 @@ const CreateBooking = () => {
     return () => clearTimeout(timer);
   }, [venue, selectedDate, selectedSlots]);
 
+  // Fetch Wallet Balance
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/wallet/my-balance`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setWalletBalance(data.balance || 0);
+        }
+      } catch (e) {
+        console.error("Failed to fetch wallet", e);
+      }
+    };
+    if (isAuthenticated) fetchBalance();
+  }, [isAuthenticated]);
+
   // User Search for Split
   useEffect(() => {
     if (inviteQuery.length < 2) {
@@ -201,7 +223,41 @@ const CreateBooking = () => {
     setCurrentStep(2);
   };
 
-  const goToPaymentStep = async () => {
+  const goToSummaryStep = () => {
+    // Step 2 -> Step 3
+    setCurrentStep(3);
+  };
+
+  const handleBookWithPoints = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/confirm-points-booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        credentials: "include",
+        body: JSON.stringify({
+          venueId: venue.venue_id,
+          date: selectedDate,
+          slots: selectedSlots,
+          sportId: selectedSport?.sport_id,
+          invites: invitees.map(i => i.email),
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBookingSuccessData(data);
+        setCurrentStep(4);
+      } else {
+        alert(data.message || "Booking failed");
+      }
+    } catch (e) {
+      alert("Error calling server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const initStripePayment = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/create-payment-intent`, {
@@ -214,18 +270,47 @@ const CreateBooking = () => {
           slots: selectedSlots,
           sportId: selectedSport?.sport_id,
           invites: invitees.map(i => i.email),
-          useWallet: false // For now force stripe
+          useWallet: useWallet
         })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to init payment");
+
+      // Safety check if fully covered happened unexpectedly (should be caught by button logic, but good for robust handling)
+      if (data.fullyCovered) {
+        // This should match confirmBookingWithPoints logic roughly, or we just call the confirm endpoint now?
+        // Since createPaymentIntent returned success for points, we might just need to confirm?
+        // Actually my backend createPaymentIntent returns { clientSecret: null, fullyCovered: true } 
+        // but DOES NOT confirm the booking. 
+        // So if we get here, we should probably call handleBookWithPoints() instead?
+        // OR, change backend to confirm if fully covered? 
+        // Let's stick to: if fully covered, frontend calls `handleBookWithPoints`.
+        // If we are here, we expected a client secret.
+        alert("Unexpected state: Payment fully covered by points. Please use 'Book Now' button.");
+        return;
+      }
+
       setClientSecret(data.clientSecret);
-      setCurrentStep(3);
+      // We don't advance step here, we just show the form in Step 3
     } catch (err) {
       alert(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Called when user clicks "Proceed to Payment" (if Partial) or if they just toggled Points and remainder > 0
+  // Actually, we want to show the Form immediately if clientSecret is ready?
+  // Or fetch it when they click "Proceed"? 
+  // Better UX: Click "Proceed", it fetches secret, then shows form? 
+  // Step 3 is "Payment Summary". 
+  // Let's make "Proceed" fetch secret and REVEAL the form in the same step.
+
+  const [showStripeForm, setShowStripeForm] = useState(false);
+
+  const handleProceedToPayment = () => {
+    initStripePayment();
+    setShowStripeForm(true);
   };
 
   const handlePaymentSuccess = async (paymentIntent) => {
@@ -322,8 +407,8 @@ const CreateBooking = () => {
                     }}
                     disabled={!slot.available}
                     className={`p-3 rounded-xl border2 transition flex flex-col items-center justify-center aspect-square ${!slot.available ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed" :
-                        selectedSlots.includes(slot.time) ? "bg-green-600 text-white border-green-600 shadow-lg scale-105" :
-                          "bg-white text-gray-700 border-gray-200 hover:border-green-400 hover:bg-green-50"
+                      selectedSlots.includes(slot.time) ? "bg-green-600 text-white border-green-600 shadow-lg scale-105" :
+                        "bg-white text-gray-700 border-gray-200 hover:border-green-400 hover:bg-green-50"
                       }`}
                   >
                     <span className="font-bold">{formatTime(slot.time)}</span>
@@ -366,100 +451,149 @@ const CreateBooking = () => {
 
   const renderStep2 = () => (
     <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 animate-fadeIn">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Split Payment?</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Split Payment with Friends</h2>
 
-      {!isSplitting && (
-        <div className="flex flex-col gap-4">
-          <button onClick={() => setIsSplitting('yes')} className="w-full p-6 border-2 border-green-100 bg-green-50 rounded-xl hover:bg-green-100 hover:border-green-300 transition flex items-center justify-between group">
-            <div className="flex items-center">
-              <div className="w-12 h-12 rounded-full bg-green-200 flex items-center justify-center text-green-700 mr-4 group-hover:bg-white group-hover:scale-110 transition"><Users size={24} /></div>
-              <div className="text-left">
-                <h3 className="font-bold text-green-900 text-lg">Yes, split with friends</h3>
-                <p className="text-green-700 text-sm">Invite friends and split the cost equally.</p>
-              </div>
-            </div>
-          </button>
-          <button onClick={() => { setIsSplitting('no'); goToPaymentStep(); }} className="w-full p-6 border-2 border-gray-100 bg-gray-50 rounded-xl hover:bg-gray-100 hover:border-gray-300 transition flex items-center justify-between group">
-            <div className="flex items-center">
-              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-4 group-hover:bg-white group-hover:scale-110 transition"><Wallet size={24} /></div>
-              <div className="text-left">
-                <h3 className="font-bold text-gray-900 text-lg">No, I'll pay full amount</h3>
-                <p className="text-gray-600 text-sm">Pay the total amount yourself.</p>
-              </div>
-            </div>
-          </button>
-        </div>
-      )}
-
-      {isSplitting === 'yes' && (
-        <div className="animate-fadeIn">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search Players</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search by name or email..."
-                value={inviteQuery}
-                onChange={(e) => setInviteQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-50 focus:bg-white focus:ring-2 ring-green-500 outline-none transition"
-              />
-              {searchResults.length > 0 && <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border z-10 max-h-48 overflow-y-auto">
-                {searchResults.map(u => (
-                  <button key={u.user_id} onClick={() => handleAddInvitee(u)} className="w-full text-left px-4 py-3 hover:bg-green-50 flex flex-col border-b last:border-b-0">
-                    <span className="font-bold text-gray-800">{u.full_name}</span>
-                    <span className="text-xs text-gray-500">{u.email}</span>
-                  </button>
-                ))}
-              </div>}
-            </div>
-          </div>
-
-          <div className="mb-8">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Invited Players ({invitees.length})</h3>
-            <div className="flex flex-wrap gap-2">
-              {invitees.length === 0 && <p className="text-sm text-gray-400 italic">No invitees yet.</p>}
-              {invitees.map(invitee => (
-                <div key={invitee.user_id} className="flex items-center bg-green-100 text-green-800 px-3 py-1.5 rounded-full text-sm font-medium">
-                  {invitee.full_name || invitee.email}
-                  <button onClick={() => handleRemoveInvitee(invitee.user_id)} className="ml-2 text-green-600 hover:text-red-500"><X size={14} /></button>
-                </div>
+      <div className="animate-fadeIn">
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Search Players</label>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={inviteQuery}
+              onChange={(e) => setInviteQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-50 focus:bg-white focus:ring-2 ring-green-500 outline-none transition"
+            />
+            {searchResults.length > 0 && <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border z-10 max-h-48 overflow-y-auto">
+              {searchResults.map(u => (
+                <button key={u.user_id} onClick={() => handleAddInvitee(u)} className="w-full text-left px-4 py-3 hover:bg-green-50 flex flex-col border-b last:border-b-0">
+                  <span className="font-bold text-gray-800">{u.full_name}</span>
+                  <span className="text-xs text-gray-500">{u.email}</span>
+                </button>
               ))}
-            </div>
-          </div>
-
-          <div className="flex justify-between gap-4 mt-8 pt-6 border-t">
-            <button onClick={() => setIsSplitting(null)} className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Back</button>
-            <button onClick={goToPaymentStep} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-bold shadow-md transition">Continue to Payment</button>
+            </div>}
           </div>
         </div>
-      )}
+
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide">Participants</h3>
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-md font-medium">
+              Est. per person: LKR {(calculatedPrice / (invitees.length + 1)).toFixed(2)}
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {/* Me */}
+            <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold mr-3">
+                  {user?.full_name?.charAt(0) || "Me"}
+                </div>
+                <span className="font-medium text-gray-900">You (Owner)</span>
+              </div>
+              <span className="text-sm font-bold text-gray-500">Payer</span>
+            </div>
+
+            {invitees.map(invitee => (
+              <div key={invitee.user_id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold mr-3">
+                    {invitee.full_name?.charAt(0) || "?"}
+                  </div>
+                  <span className="font-medium text-gray-900">{invitee.full_name || invitee.email}</span>
+                </div>
+                <button onClick={() => handleRemoveInvitee(invitee.user_id)} className="text-gray-400 hover:text-red-500 transition"><X size={18} /></button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-between gap-4 mt-8 pt-6 border-t">
+          <button onClick={() => setCurrentStep(1)} className="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium">Back</button>
+          <button onClick={goToSummaryStep} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-bold shadow-md transition flex items-center">
+            Continue
+          </button>
+        </div>
+      </div>
     </div>
   );
 
-  const renderStep3 = () => (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 animate-fadeIn">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment</h2>
-      <div className="bg-green-50 p-4 rounded-xl flex justify-between items-center mb-6 border border-green-100">
-        <div>
-          <p className="text-gray-500 text-sm">Total Amount</p>
-          <p className="text-2xl font-bold text-green-700">LKR {calculatedPrice.toFixed(2)}</p>
+  const renderStep3 = () => {
+    const total = calculatedPrice;
+    const pointsToUse = useWallet ? Math.min(walletBalance, total) : 0;
+    const payAmount = total - pointsToUse;
+    const isFullyCovered = payAmount <= 0;
+
+    return (
+      <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 animate-fadeIn">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Summary</h2>
+
+        <div className="bg-gray-50 rounded-xl p-6 space-y-4 mb-6">
+          <div className="flex justify-between items-center text-gray-700">
+            <span>Total Booking Amount</span>
+            <span className="font-bold text-lg">LKR {total.toFixed(2)}</span>
+          </div>
+
+          {/* Wallet Toggle */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div className="flex items-center">
+              <Wallet className="text-green-600 mr-3" size={24} />
+              <div>
+                <p className="font-bold text-gray-900">Use PlayPoints</p>
+                <p className="text-xs text-gray-500">Available Balance: LKR {walletBalance.toFixed(2)}</p>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" checked={useWallet} onChange={(e) => {
+                setUseWallet(e.target.checked);
+                setShowStripeForm(false); // Reset form if they toggle wallet, as amount changes
+                setClientSecret("");
+              }} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+            </label>
+          </div>
+
+          {useWallet && pointsToUse > 0 && (
+            <div className="flex justify-between items-center text-green-700 px-2">
+              <span>Points Applied</span>
+              <span>- LKR {pointsToUse.toFixed(2)}</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pt-4 border-t border-gray-300">
+            <span className="text-xl font-bold text-gray-900">Payable Amount</span>
+            <span className="text-2xl font-bold text-green-700">LKR {payAmount.toFixed(2)}</span>
+          </div>
         </div>
-        {invitees.length > 0 && (
-          <div className="text-right">
-            <p className="text-gray-500 text-sm">Your Share</p>
-            <p className="text-lg font-semibold text-green-700">LKR {(calculatedPrice / (invitees.length + 1)).toFixed(2)}</p>
+
+        {!showStripeForm && !isFullyCovered && (
+          <button onClick={handleProceedToPayment} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition">
+            Proceed to Payment (LKR {payAmount.toFixed(2)})
+          </button>
+        )}
+
+        {isFullyCovered && (
+          <button onClick={handleBookWithPoints} className="w-full py-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center">
+            <CheckCircle className="mr-2" /> Book Now (Using Points)
+          </button>
+        )}
+
+        {showStripeForm && clientSecret && !isFullyCovered && (
+          <div className="mt-6 animate-fadeIn">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-bold text-gray-700">Card Payment</h3>
+              <button onClick={() => setShowStripeForm(false)} className="text-sm text-gray-500 hover:underline">Change Method</button>
+            </div>
+            <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
+              <PaymentForm amount={payAmount} onSuccess={handlePaymentSuccess} onBack={() => setShowStripeForm(false)} />
+            </Elements>
           </div>
         )}
       </div>
-
-      {clientSecret && (
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
-          <PaymentForm amount={calculatedPrice} onSuccess={handlePaymentSuccess} onBack={() => setCurrentStep(2)} />
-        </Elements>
-      )}
-    </div>
-  );
+    );
+  };
 
   const renderStep4 = () => (
     <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg p-10 text-center animate-fadeIn">
