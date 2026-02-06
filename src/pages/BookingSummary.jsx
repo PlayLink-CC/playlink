@@ -615,6 +615,9 @@ const BookingSummary = () => {
                       {cancelModal.refundAmount.toLocaleString()}
                     </p>
                   </div>
+                  <p className="text-[10px] text-gray-500 font-medium text-center pt-2 italic">
+                    Refunds will be credited to your PlayLink Wallet as points.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
