@@ -7,14 +7,14 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { User, Building2, Eye, EyeOff } from "lucide-react";
+import { User, Building2, Briefcase, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const SignUpPage = () => {
   const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState(searchParams.get("email") || "");
-  const [isVenueOwner, setIsVenueOwner] = useState(false);
+  const [accountType, setAccountType] = useState("PLAYER");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -91,7 +91,7 @@ const SignUpPage = () => {
             email,
             password,
             city,
-            accountType: isVenueOwner ? "VENUE_OWNER" : "USER",
+            accountType,
           }),
         }
       );
@@ -109,8 +109,11 @@ const SignUpPage = () => {
       await refreshUser();
 
       // Notify success and redirect based on account type
-      if (isVenueOwner) {
+      if (accountType === "VENUE_OWNER") {
         navigate("/venue-dashboard");
+      } else if (accountType === "EMPLOYEE") {
+        // Assuming employee dashboard route exists or will be created
+        navigate("/employee/dashboard");
       } else {
         navigate("/");
       }
@@ -127,7 +130,14 @@ const SignUpPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Sign Up Form */}
       <div className="flex items-center justify-center px-4 py-12">
-        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md relative">
+          <button
+            onClick={() => navigate("/")}
+            className="absolute left-6 top-6 text-gray-400 hover:text-gray-600 transition"
+            title="Go back"
+          >
+            <ArrowLeft size={24} />
+          </button>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Create Your Account
@@ -277,19 +287,19 @@ const SignUpPage = () => {
             <label className="block text-sm font-bold text-gray-700 mb-3">
               I am a...
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <button
                 type="button"
-                onClick={() => setIsVenueOwner(false)}
-                className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${!isVenueOwner
+                onClick={() => setAccountType("PLAYER")}
+                className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all ${accountType === "PLAYER"
                   ? "border-green-600 bg-green-50/50 shadow-sm"
                   : "border-gray-100 bg-white hover:border-gray-200"
                   }`}
               >
-                <div className={`p-2 rounded-lg mb-2 ${!isVenueOwner ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                <div className={`p-2 rounded-lg mb-2 ${accountType === "PLAYER" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"}`}>
                   <User size={20} />
                 </div>
-                <span className={`text-sm font-bold ${!isVenueOwner ? "text-green-700" : "text-gray-500"}`}>
+                <span className={`text-sm font-bold ${accountType === "PLAYER" ? "text-green-700" : "text-gray-500"}`}>
                   Player
                 </span>
                 <span className="text-[10px] text-gray-400 mt-1 text-center leading-tight">
@@ -299,20 +309,39 @@ const SignUpPage = () => {
 
               <button
                 type="button"
-                onClick={() => setIsVenueOwner(true)}
-                className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${isVenueOwner
+                onClick={() => setAccountType("VENUE_OWNER")}
+                className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all ${accountType === "VENUE_OWNER"
                   ? "border-green-600 bg-green-50/50 shadow-sm"
                   : "border-gray-100 bg-white hover:border-gray-200"
                   }`}
               >
-                <div className={`p-2 rounded-lg mb-2 ${isVenueOwner ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                <div className={`p-2 rounded-lg mb-2 ${accountType === "VENUE_OWNER" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"}`}>
                   <Building2 size={20} />
                 </div>
-                <span className={`text-sm font-bold ${isVenueOwner ? "text-green-700" : "text-gray-500"}`}>
+                <span className={`text-sm font-bold ${accountType === "VENUE_OWNER" ? "text-green-700" : "text-gray-500"}`}>
                   Venue Owner
                 </span>
                 <span className="text-[10px] text-gray-400 mt-1 text-center leading-tight">
                   List and manage venues
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAccountType("EMPLOYEE")}
+                className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all ${accountType === "EMPLOYEE"
+                  ? "border-green-600 bg-green-50/50 shadow-sm"
+                  : "border-gray-100 bg-white hover:border-gray-200"
+                  }`}
+              >
+                <div className={`p-2 rounded-lg mb-2 ${accountType === "EMPLOYEE" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-400"}`}>
+                  <Briefcase size={20} />
+                </div>
+                <span className={`text-sm font-bold ${accountType === "EMPLOYEE" ? "text-green-700" : "text-gray-500"}`}>
+                  Employee
+                </span>
+                <span className="text-[10px] text-gray-400 mt-1 text-center leading-tight">
+                  Manage bookings and daily operations for a venue.
                 </span>
               </button>
             </div>
