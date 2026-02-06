@@ -11,12 +11,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node_version: '22' # Ensures Vite 7 build works correctly
+
       - name: Install and Build
         run: |
           npm install
           npm run build
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_STRIPE_PUBLIC_KEY: ${{ secrets.VITE_STRIPE_PUBLIC_KEY }}
 
       - name: Sync Server Repo and Clean Old Files
         uses: appleboy/ssh-action@master
@@ -25,12 +31,12 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 1. Sync the repo folder (Fixes the missing files issue)
+            # 1. Sync the repo folder located at /home/ubuntu/playlink
             cd /home/ubuntu/playlink
             git fetch origin main
             git reset --hard origin/main
             
-            # 2. Clean the web directory for the new build
+            # 2. Wipe the live web directory for the fresh build
             sudo rm -rf /var/www/html/*
             sudo chown -R ubuntu:ubuntu /var/www/html
 
@@ -40,9 +46,9 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "dist/"
+          source: "dist/" # This refers to the dist folder created in the GitHub Runner root
           target: "/var/www/html"
-          strip_components: 1
+          strip_components: 1 # Takes the CONTENTS of dist/ and puts them into /var/www/html
           rm: false 
 
       - name: Restart Nginx

@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import TopUpModal from "../components/TopUpModal.jsx";
+import { Plus } from "lucide-react";
 
 const Wallet = () => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, fetchWalletBalance } = useAuth();
     const [balance, setBalance] = useState(0);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isTopUpOpen, setIsTopUpOpen] = useState(false);
 
-    useEffect(() => {
-        if (!isAuthenticated) return;
-
+    const fetchWalletData = () => {
+        setLoading(true);
         fetch(`${import.meta.env.VITE_API_URL}/api/wallet/summary`, {
             credentials: "include",
         })
@@ -24,9 +26,19 @@ const Wallet = () => {
                 console.error("Failed to load wallet", err);
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        fetchWalletData();
     }, [isAuthenticated]);
 
-    if (loading) {
+    const handleTopUpSuccess = () => {
+        fetchWalletData();
+        if (fetchWalletBalance) fetchWalletBalance(); // Update balance in navbar context
+    };
+
+    if (loading && transactions.length === 0) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <p className="text-gray-500">Loading wallet...</p>
@@ -35,13 +47,18 @@ const Wallet = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="min-h-screen bg-gray-50 py-8 px-4 font-outfit">
             <div className="max-w-xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold text-gray-900">Wallet</h1>
-                    {/* Optional: Add Funds Button (Placeholder) */}
-                    {/* <button className="text-sm font-medium text-green-600 hover:text-green-700">Add Funds</button> */}
+                    <button
+                        onClick={() => setIsTopUpOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-xl transition shadow-lg shadow-green-100 transform hover:-translate-y-0.5 active:scale-95"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Top Up
+                    </button>
                 </div>
 
                 {/* Uber Cash Style Card */}
@@ -113,6 +130,12 @@ const Wallet = () => {
                     </div>
                 </div>
             </div>
+
+            <TopUpModal
+                isOpen={isTopUpOpen}
+                onClose={() => setIsTopUpOpen(false)}
+                onRefresh={handleTopUpSuccess}
+            />
         </div>
     );
 };

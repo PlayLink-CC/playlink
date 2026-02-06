@@ -6,7 +6,8 @@
  */
 
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { Toaster } from "sonner";
 
 import MainLayout from "./components/layout/MainLayout";
@@ -27,6 +28,20 @@ import CreateVenue from "./pages/CreateVenue";
 import VenueDetails from "./pages/VenueDetails";
 import Wallet from "./pages/Wallet";
 import VenueCalendar from "./pages/VenueCalendar";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+
+/**
+ * ScrollToTop Component - Resets scroll position to top on every route change
+ */
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+};
 
 /**
  * App Component - Main application router
@@ -41,6 +56,7 @@ import VenueCalendar from "./pages/VenueCalendar";
 const App = () => {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Toaster position="bottom-right" richColors />
       <Routes>
         {/* Auth pages */}
@@ -70,6 +86,11 @@ const App = () => {
           <Route path="/venue-dashboard" element={<VenueDashboard />} />
           <Route path="/venue-calendar" element={<VenueCalendar />} />
           <Route path="/create-venue" element={<CreateVenue />} />
+        </Route>
+
+        {/* Protected Routes for Employees */}
+        <Route element={<ProtectedRoute allowedRoles={['EMPLOYEE']}><MainLayout /></ProtectedRoute>}>
+          <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
         </Route>
 
         {/* 404 Not Found Route - must be last */}
