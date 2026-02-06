@@ -113,7 +113,7 @@ const SignUpPage = () => {
         navigate("/venue-dashboard");
       } else if (accountType === "EMPLOYEE") {
         // Assuming employee dashboard route exists or will be created
-        navigate("/employee-dashboard");
+        navigate("/employee/dashboard");
       } else {
         navigate("/");
       }
