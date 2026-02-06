@@ -90,6 +90,13 @@ const VenueDetails = () => {
     const [staffList, setStaffList] = useState([]);
     const [newStaffEmail, setNewStaffEmail] = useState("");
 
+    // Fetch staff if user is owner
+    useEffect(() => {
+        if (isOwner && id) {
+            fetchStaff();
+        }
+    }, [isOwner, id]);
+
     const fetchStaff = async () => {
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/venues/${id}/staff`, {
@@ -460,6 +467,30 @@ const VenueDetails = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Owner-Only: Current Employees Section */}
+                        {isOwner && (
+                            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                                <h2 className="text-2xl font-bold mb-4">Current Employees</h2>
+                                {staffList.length === 0 ? (
+                                    <p className="text-gray-500 italic">No employees assigned yet.</p>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {staffList.map((staff) => (
+                                            <div key={staff.user_id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold shrink-0">
+                                                    {staff.full_name?.charAt(0).toUpperCase() || "E"}
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <p className="font-semibold text-gray-900 truncate">{staff.full_name}</p>
+                                                    <p className="text-sm text-gray-500 truncate">{staff.email}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {isOwner && (
                             <>
