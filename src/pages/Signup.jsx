@@ -246,7 +246,7 @@ const SignUpPage = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Your password should contain a minimum of 8 characters.
+                8+ characters with a mix of uppercase, lowercase, numbers, and symbols.
               </p>
             </div>
 
@@ -276,7 +276,7 @@ const SignUpPage = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Your password should contain a minimum of 8 characters.
+                8+ characters with a mix of uppercase, lowercase, numbers, and symbols.
               </p>
             </div>
 
