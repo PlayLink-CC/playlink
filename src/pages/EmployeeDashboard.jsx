@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Loader2, Calendar, Clock, User, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Calendar, Clock, User, CheckCircle, XCircle, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import VenueCalendar from "./VenueCalendar"; // Import Calendar
@@ -9,6 +9,7 @@ const EmployeeDashboard = () => {
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState(null);
+    const [notAssigned, setNotAssigned] = useState(false);
 
     const fetchStats = async () => {
         try {
@@ -18,6 +19,10 @@ const EmployeeDashboard = () => {
             });
 
             if (!res.ok) {
+                if (res.status === 404) {
+                    setNotAssigned(true);
+                    return; // Stop execution here, don't throw error
+                }
                 throw new Error("Failed to fetch dashboard data");
             }
 
@@ -43,6 +48,28 @@ const EmployeeDashboard = () => {
         return (
             <div className="flex h-screen items-center justify-center bg-gray-50">
                 <Loader2 className="h-10 w-10 animate-spin text-green-600" />
+            </div>
+        );
+    }
+
+    if (notAssigned) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50 p-4">
+                <div className="text-center max-w-md bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="mx-auto w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mb-6">
+                        <Briefcase size={32} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Waiting for Assignment</h2>
+                    <p className="text-gray-600 mb-6">
+                        You haven't been assigned to a venue yet. Please contact your venue owner to be added to the team roster.
+                    </p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="text-green-600 font-medium hover:text-green-700 hover:underline transition"
+                    >
+                        Check Again
+                    </button>
+                </div>
             </div>
         );
     }
